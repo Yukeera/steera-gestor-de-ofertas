@@ -41,22 +41,40 @@ cp .env.example .env.local
 
 ## 4. Aplicar o schema
 
-**Opção A — Supabase CLI (recomendado):**
+Pelo CLI, que é o que mantém o histórico de migrations em dia. O CLI já está
+como dependência de desenvolvimento do projeto.
+
+**4.1 — Autenticar** (abre o navegador, uma vez por máquina):
 
 ```bash
-npx supabase link --project-ref SEU_PROJECT_REF
+npx supabase login
 ```
+
+**4.2 — Ligar o repositório ao projeto.** O `project-ref` é o subdomínio da sua
+Project URL: em `https://abcdefgh.supabase.co`, é `abcdefgh`. O comando pede a
+senha do banco que você guardou no passo 1.
 
 ```bash
-npx supabase db push
+npm run db:link -- --project-ref SEU_PROJECT_REF
 ```
 
-**Opção B — pelo painel:** abra **SQL Editor** e rode, nesta ordem, o conteúdo de:
+**4.3 — Aplicar migrations e seed:**
 
-1. `supabase/migrations/20260911000001_schema.sql`
-2. `supabase/migrations/20260911000002_rls.sql`
-3. `supabase/migrations/20260911000003_regras.sql`
-4. `supabase/seed.sql`
+```bash
+npm run db:push
+```
+
+**4.4 — Conferir:**
+
+```bash
+npm run db:status
+```
+
+As três migrations devem aparecer com a mesma versão em `Local` e `Remote`.
+
+> Daqui para frente, toda mudança de banco é um arquivo novo em
+> `supabase/migrations/` seguido de `npm run db:push`. Nunca altere uma migration
+> já aplicada — o CLI compara pelo histórico e vai reclamar.
 
 ## 5. Criar os buckets de arquivo
 
