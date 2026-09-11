@@ -76,14 +76,44 @@ As três migrations devem aparecer com a mesma versão em `Local` e `Remote`.
 > `supabase/migrations/` seguido de `npm run db:push`. Nunca altere uma migration
 > já aplicada — o CLI compara pelo histórico e vai reclamar.
 
-## 5. Criar os buckets de arquivo
+## 5. Configurar os links de e-mail
 
-Em **Storage**, crie dois buckets **privados**:
+Sem isso, o convite chega mas o link não funciona.
 
-- `avatares` — fotos da equipe
-- `ofertas` — capas e criativos
+**5.1 — URLs permitidas.** Em **Authentication → URL Configuration**:
 
-## 6. Criar o primeiro Chefe
+- **Site URL:** `http://localhost:3000` (em produção, a URL real)
+- **Redirect URLs:** adicione `http://localhost:3000/auth/confirm`
+
+Endereço fora dessa lista é ignorado pelo Supabase, que joga a pessoa na Site URL.
+
+**5.2 — Template do convite.** Em **Authentication → Emails → Invite user**,
+troque o link do corpo do e-mail por:
+
+```html
+<a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/definir-senha">Aceitar convite</a>
+```
+
+> **Por que trocar.** O template padrão usa `{{ .ConfirmationURL }}`, que devolve
+> o token no *fragmento* da URL (`#access_token=…`). O navegador nunca envia
+> fragmento para o servidor, então a rota `/auth/confirm` não teria como lê-lo.
+> `{{ .TokenHash }}` manda o token na query, onde o servidor alcança.
+
+Faça o mesmo em **Reset password**, trocando `type=invite` por `type=recovery` e
+`next=/definir-senha`.
+
+**5.3 — SMTP.** O SMTP embutido do Supabase é só para teste: limita a poucos
+e-mails por hora e **só entrega para endereços do time do projeto**. Para
+convidar a equipe de verdade, configure um SMTP próprio em
+**Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES).
+
+## 6. Criar os buckets de arquivo
+
+As migrations já criam os buckets `avatares` e `ofertas` como privados, com
+limite de tamanho e tipos permitidos. Não é preciso criar nada à mão — só
+confira em **Storage** que os dois aparecem.
+
+## 7. Criar o primeiro Chefe
 
 1. Em **Authentication → Users → Add user**, crie seu usuário com e-mail e senha.
    Marque *Auto Confirm User*.
@@ -94,7 +124,7 @@ Isso cria seu registro em `membros` com cargo **Chefe** e função **Mestre da
 Esteira**. A partir daí, todos os outros membros são convidados pela própria tela
 de Equipe do app.
 
-## 7. Rodar
+## 8. Rodar
 
 ```bash
 npm run dev
@@ -105,8 +135,10 @@ npm run dev
 ## Checklist rápido
 
 - [ ] Projeto Supabase criado na região de São Paulo
-- [ ] `.env.local` com as três chaves
-- [ ] As três migrations aplicadas, na ordem
-- [ ] `seed.sql` rodado (cria o Roteiro padrão de 8 etapas)
-- [ ] Buckets `avatares` e `ofertas` criados como privados
+- [ ] `.env.local` com as chaves publishable e secret
+- [ ] `npm run db:push` rodado e `npm run db:status` com local = remote
+- [ ] Site URL e Redirect URL (`/auth/confirm`) configuradas
+- [ ] Template de convite usando `{{ .TokenHash }}`
+- [ ] SMTP próprio configurado (o embutido só entrega para o time do projeto)
+- [ ] Buckets `avatares` e `ofertas` visíveis em Storage
 - [ ] Primeiro usuário criado e promovido com `bootstrap.sql`

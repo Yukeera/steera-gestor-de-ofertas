@@ -18,6 +18,40 @@ import { CARGOS, FUNCOES } from "@/lib/dominio/tipos";
 
 export type Resultado = { ok: true } | { ok: false; erro: string };
 
+/**
+ * Para onde o link do convite leva depois de validado.
+ *
+ * Precisa estar na lista de Redirect URLs do painel do Supabase, senão o
+ * serviço ignora e joga a pessoa na Site URL. Ver docs/SETUP.md.
+ */
+function urlDeAceite(): string {
+  const base =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+    "http://localhost:3000";
+  return `${base}/auth/confirm?next=/definir-senha`;
+}
+
+/**
+ * RF-01.1 — reenvia o convite.
+ *
+ * O token do e-mail vale uma vez só e expira. Sem isto, um link queimado
+ * obrigaria o Chefe a ir no painel do Supabase para destravar alguém.
+ */
+export async function reenviarConvite(email: string): Promise<Resultado> {
+  await exigirChefe();
+
+  const admin = criarClienteAdmin();
+  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: urlDeAceite(),
+  });
+
+  if (error) {
+    return { ok: false, erro: `Não foi possível reenviar: ${error.message}` };
+  }
+
+  return { ok: true };
+}
+
 const esquemaMembro = z.object({
   nome: z.string().trim().min(2, "O nome precisa ter ao menos 2 letras."),
   email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
@@ -57,7 +91,9 @@ export async function convidarMembro(formData: FormData): Promise<Resultado> {
   const admin = criarClienteAdmin();
 
   const { data: convite, error: erroConvite } =
-    await admin.auth.admin.inviteUserByEmail(email);
+    await admin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: urlDeAceite(),
+    });
 
   if (erroConvite || !convite?.user) {
     const jaExiste =

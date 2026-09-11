@@ -1,10 +1,10 @@
 "use client";
 
 import { useTransition } from "react";
-import { MoreVertical, Pencil, UserCheck, UserX } from "lucide-react";
+import { MailPlus, MoreVertical, Pencil, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
-import { alternarAtivo } from "@/actions/equipe";
+import { alternarAtivo, reenviarConvite } from "@/actions/equipe";
 import { AvatarMembro } from "@/components/equipe/avatar-membro";
 import { DialogoMembro } from "@/components/equipe/dialogo-membro";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,17 @@ export function CartaoMembro({
   ehVoce: boolean;
 }) {
   const [processando, iniciar] = useTransition();
+
+  function reenviar() {
+    iniciar(async () => {
+      const resultado = await reenviarConvite(membro.email);
+      if (resultado.ok) {
+        toast.success(`Novo convite enviado para ${membro.email}.`);
+      } else {
+        toast.error(resultado.erro);
+      }
+    });
+  }
 
   function alternar() {
     iniciar(async () => {
@@ -109,6 +120,10 @@ export function CartaoMembro({
                       </DropdownMenuItem>
                     }
                   />
+                  <DropdownMenuItem onSelect={reenviar} disabled={ehVoce}>
+                    <MailPlus aria-hidden="true" />
+                    Reenviar convite
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={alternar} disabled={ehVoce}>
                     {membro.ativo ? (
                       <>
