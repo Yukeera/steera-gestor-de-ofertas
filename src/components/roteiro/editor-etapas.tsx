@@ -239,6 +239,9 @@ export function EditorEtapas({
   return (
     <div className="space-y-4">
       <DndContext
+        // Ver checklist-montagem: id fixo evita o contador de módulo do
+        // dnd-kit divergir entre servidor e cliente.
+        id="editor-etapas"
         sensors={sensores}
         collisionDetection={closestCenter}
         onDragEnd={aoTerminarArraste}

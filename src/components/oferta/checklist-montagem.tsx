@@ -370,6 +370,11 @@ export function ChecklistMontagem({
 
   return (
     <DndContext
+      // `id` fixo de propósito. Sem ele, o dnd-kit gera o id do elemento de
+      // acessibilidade com um contador de módulo — que no servidor sobrevive
+      // entre requisições, enquanto no cliente começa do zero. O resultado é
+      // um aria-describedby diferente dos dois lados e erro de hidratação.
+      id="checklist-montagem"
       sensors={sensores}
       collisionDetection={pointerWithin}
       onDragStart={aoIniciarArraste}
