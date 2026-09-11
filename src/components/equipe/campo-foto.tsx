@@ -7,42 +7,7 @@ import { toast } from "sonner";
 import { atualizarFoto } from "@/actions/equipe";
 import { AvatarMembro } from "@/components/equipe/avatar-membro";
 import { Button } from "@/components/ui/button";
-
-const LADO = 400;
-const TIPOS_ACEITOS = "image/jpeg,image/png,image/webp";
-
-/**
- * Recorta no centro e redimensiona para 400×400 antes de subir.
- *
- * Feito no navegador de propósito: evita uma dependência de processamento de
- * imagem no servidor e, principalmente, evita mandar 8 MB de foto de celular
- * pela rede para guardar um avatar de 400px (RNF-07).
- */
-async function prepararImagem(arquivo: File): Promise<File> {
-  const bitmap = await createImageBitmap(arquivo);
-
-  const lado = Math.min(bitmap.width, bitmap.height);
-  const origemX = (bitmap.width - lado) / 2;
-  const origemY = (bitmap.height - lado) / 2;
-
-  const canvas = document.createElement("canvas");
-  canvas.width = LADO;
-  canvas.height = LADO;
-
-  const contexto = canvas.getContext("2d");
-  if (!contexto) throw new Error("O navegador não conseguiu processar a imagem.");
-
-  contexto.drawImage(bitmap, origemX, origemY, lado, lado, 0, 0, LADO, LADO);
-  bitmap.close();
-
-  const blob = await new Promise<Blob | null>((resolver) =>
-    canvas.toBlob(resolver, "image/webp", 0.9),
-  );
-
-  if (!blob) throw new Error("O navegador não conseguiu processar a imagem.");
-
-  return new File([blob], "foto.webp", { type: "image/webp" });
-}
+import { prepararQuadrado, TIPOS_DE_IMAGEM } from "@/lib/imagem";
 
 export function CampoFoto({
   membroId,
@@ -65,7 +30,7 @@ export function CampoFoto({
 
     iniciarEnvio(async () => {
       try {
-        const preparada = await prepararImagem(arquivo);
+        const preparada = await prepararQuadrado(arquivo);
 
         // Prévia otimista: a foto nova aparece antes da ida ao servidor.
         setPrevia(URL.createObjectURL(preparada));
@@ -120,7 +85,7 @@ export function CampoFoto({
       <input
         ref={inputRef}
         type="file"
-        accept={TIPOS_ACEITOS}
+        accept={TIPOS_DE_IMAGEM}
         className="sr-only"
         aria-label="Escolher foto de perfil"
         onChange={aoEscolher}

@@ -1,0 +1,219 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { Loader2, Lightbulb } from "lucide-react";
+import { toast } from "sonner";
+
+import { atualizarIdeia, criarIdeia } from "@/actions/peneira";
+import {
+  CampoImagens,
+  type ImagemEscolhida,
+} from "@/components/oferta/campo-imagens";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+export type IdeiaEditavel = {
+  id: string;
+  nome: string;
+  descricao: string;
+  anuncianteReferencia: string | null;
+  urlReferencia: string | null;
+  nicho: string | null;
+  capaUrl: string | null;
+};
+
+export function DialogoIdeia({
+  ideia,
+  gatilho,
+}: {
+  ideia?: IdeiaEditavel;
+  gatilho?: React.ReactNode;
+}) {
+  const editando = Boolean(ideia);
+  const [aberto, setAberto] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, iniciar] = useTransition();
+
+  const [capa, setCapa] = useState<ImagemEscolhida[]>([]);
+  const [criativos, setCriativos] = useState<ImagemEscolhida[]>([]);
+
+  function aoMudarAbertura(novoEstado: boolean) {
+    if (novoEstado) {
+      setCapa([]);
+      setCriativos([]);
+      setErro(null);
+    }
+    setAberto(novoEstado);
+  }
+
+  function aoEnviar(evento: React.FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    setErro(null);
+
+    const dados = new FormData(evento.currentTarget);
+    if (capa[0]) dados.set("capa", capa[0].arquivo);
+    for (const imagem of criativos) dados.append("criativos", imagem.arquivo);
+
+    iniciar(async () => {
+      const resultado = ideia
+        ? await atualizarIdeia(ideia.id, dados)
+        : await criarIdeia(dados);
+
+      if (resultado.ok) {
+        toast.success(
+          editando ? "Ideia atualizada." : "Ideia guardada na Peneira.",
+        );
+        setAberto(false);
+      } else {
+        setErro(resultado.erro);
+      }
+    });
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={aoMudarAbertura}>
+      <DialogTrigger asChild>
+        {gatilho ?? (
+          <Button>
+            <Lightbulb aria-hidden="true" />
+            Nova ideia
+          </Button>
+        )}
+      </DialogTrigger>
+
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>
+            {editando ? `Editar "${ideia!.nome}"` : "Nova ideia"}
+          </DialogTitle>
+          <DialogDescription>
+            O que você escrever aqui acompanha a oferta até o Painel, sem
+            recadastro.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={aoEnviar} className="space-y-5" noValidate>
+          <div className="space-y-2">
+            <Label htmlFor="nome">Nome da oferta</Label>
+            <Input
+              id="nome"
+              name="nome"
+              defaultValue={ideia?.nome}
+              placeholder="Ex.: Detox Turbo 30 dias"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="descricao">O que o produto oferece</Label>
+            <Textarea
+              id="descricao"
+              name="descricao"
+              defaultValue={ideia?.descricao}
+              rows={4}
+              placeholder="A promessa, o público e o que entrega."
+              required
+              aria-describedby="ajuda-descricao"
+            />
+            <p id="ajuda-descricao" className="text-muted-foreground text-xs">
+              É esta descrição que a equipe vai ler no dia da montagem.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="anunciante_referencia">
+                Anunciante de referência
+              </Label>
+              <Input
+                id="anunciante_referencia"
+                name="anunciante_referencia"
+                defaultValue={ideia?.anuncianteReferencia ?? ""}
+                placeholder="@perfil ou nome"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nicho">Nicho</Label>
+              <Input
+                id="nicho"
+                name="nicho"
+                defaultValue={ideia?.nicho ?? ""}
+                placeholder="Ex.: emagrecimento"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="url_referencia">Link da referência</Label>
+            <Input
+              id="url_referencia"
+              name="url_referencia"
+              type="url"
+              inputMode="url"
+              defaultValue={ideia?.urlReferencia ?? ""}
+              placeholder="https://…"
+            />
+          </div>
+
+          <CampoImagens
+            rotulo="Imagem de capa"
+            ajuda="Aparece nos cards e na galeria do Painel. Se não enviar, entra um marcador até a geração por IA existir."
+            valor={capa}
+            aoMudar={setCapa}
+            previaExistente={ideia?.capaUrl}
+          />
+
+          {editando ? null : (
+            <CampoImagens
+              rotulo="Criativos de referência"
+              ajuda="Os anúncios que inspiraram a ideia. Pode escolher vários."
+              multiplo
+              valor={criativos}
+              aoMudar={setCriativos}
+            />
+          )}
+
+          {erro ? (
+            <p role="alert" className="text-destructive text-sm">
+              {erro}
+            </p>
+          ) : null}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setAberto(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={salvando}>
+              {salvando ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                  Salvando…
+                </>
+              ) : editando ? (
+                "Salvar"
+              ) : (
+                "Guardar na Peneira"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
