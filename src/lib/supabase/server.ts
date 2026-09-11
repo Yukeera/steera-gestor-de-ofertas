@@ -6,7 +6,7 @@ import { envPublico, envServidor } from "@/lib/env";
 
 /**
  * Cliente Supabase para Server Components, Server Actions e Route Handlers.
- * Usa a chave anon, então continua sujeito ao RLS — que é o ponto.
+ * Usa a chave publishable, então continua sujeito ao RLS — que é o ponto.
  */
 export async function criarClienteServidor() {
   const cookieStore = await cookies();
@@ -14,7 +14,7 @@ export async function criarClienteServidor() {
 
   return createServerClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
       cookies: {
         getAll() {
@@ -44,12 +44,12 @@ export async function criarClienteServidor() {
  * conseguiria fazer: o RLS é a barreira de verdade do sistema.
  */
 export function criarClienteAdmin() {
-  const { SUPABASE_SERVICE_ROLE_KEY } = envServidor();
+  const { SUPABASE_SECRET_KEY } = envServidor();
   const env = envPublico();
 
   return createClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
+    SUPABASE_SECRET_KEY,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 }

@@ -15,9 +15,9 @@ const esquemaPublico = z.object({
     .url(
       "NEXT_PUBLIC_SUPABASE_URL precisa ser a URL do projeto Supabase. Veja docs/SETUP.md.",
     ),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z
     .string()
-    .min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY não pode ficar vazia."),
+    .min(1, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY não pode ficar vazia."),
 });
 
 export type EnvPublico = z.infer<typeof esquemaPublico>;
@@ -27,24 +27,25 @@ export function envPublico(): EnvPublico {
   // expressões em build time no bundle do cliente. Acesso dinâmico não funciona.
   return esquemaPublico.parse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   });
 }
 
 /**
- * Só no servidor. A service role ignora todo o RLS.
+ * Só no servidor. A chave secret carrega o atributo BYPASSRLS do Postgres:
+ * ela pula toda política, então nunca pode sair do servidor.
  */
 export function envServidor() {
   return z
     .object({
-      SUPABASE_SERVICE_ROLE_KEY: z
+      SUPABASE_SECRET_KEY: z
         .string()
         .min(
           1,
-          "SUPABASE_SERVICE_ROLE_KEY é obrigatória para convidar membros. Veja docs/SETUP.md.",
+          "SUPABASE_SECRET_KEY é obrigatória para convidar membros. Veja docs/SETUP.md.",
         ),
     })
     .parse({
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
     });
 }

@@ -15,16 +15,21 @@ O que precisa ser feito uma vez, por você, antes de o app rodar.
 
 ## 2. Pegar as chaves
 
-Em **Project Settings → API**, copie:
+Em **Project Settings → API Keys**, copie:
 
 | Campo no painel | Vai para |
 |---|---|
 | Project URL | `NEXT_PUBLIC_SUPABASE_URL` |
-| `anon` / `public` key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
-| `service_role` key | `SUPABASE_SERVICE_ROLE_KEY` |
+| **Publishable key** (`sb_publishable_…`) | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
+| **Secret key** (`sb_secret_…`) | `SUPABASE_SECRET_KEY` |
 
-> A `service_role` ignora todo o RLS. Ela só é usada no servidor, para convidar
-> membros. Nunca vai para o cliente e nunca entra no git.
+> **Não use as chaves legadas.** O painel ainda mostra uma aba com as antigas
+> `anon` e `service_role` em formato JWT. Elas funcionam, mas o Supabase as
+> desativa até o fim de 2026. Projeto novo já nasce nas chaves novas.
+>
+> A **publishable** vai para o navegador de propósito — quem protege os dados é
+> o RLS, não o sigilo dela. A **secret** carrega `BYPASSRLS` e ignora toda
+> política do banco: fica só no servidor, nunca no cliente, nunca no git.
 
 ## 3. Preencher o `.env.local`
 
