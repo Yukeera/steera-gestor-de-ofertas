@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { MailPlus, MoreVertical, Pencil, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +44,7 @@ export function CartaoMembro({
   ehVoce: boolean;
 }) {
   const [processando, iniciar] = useTransition();
+  const [editando, setEditando] = useState(false);
 
   function reenviar() {
     iniciar(async () => {
@@ -76,93 +77,98 @@ export function CartaoMembro({
   }
 
   return (
-    <Card className={cn(membro.ativo || "opacity-60")}>
-      <CardContent className="flex gap-4 pt-6">
-        <AvatarMembro
-          nome={membro.nome}
-          fotoUrl={membro.fotoUrl}
-          tamanho="lg"
-        />
+    <>
+      <DialogoMembro
+        membro={membro}
+        aberto={editando}
+        aoAlternar={setEditando}
+      />
 
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate font-medium">
-                {membro.nome}
-                {ehVoce ? (
-                  <span className="text-muted-foreground font-normal">
-                    {" "}
-                    · você
-                  </span>
-                ) : null}
-              </p>
-              <p className="text-muted-foreground truncate text-sm">
-                {membro.email}
-              </p>
+      <Card className={cn(membro.ativo || "opacity-60")}>
+        <CardContent className="flex gap-4 pt-6">
+          <AvatarMembro
+            nome={membro.nome}
+            fotoUrl={membro.fotoUrl}
+            tamanho="lg"
+          />
+
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate font-medium">
+                  {membro.nome}
+                  {ehVoce ? (
+                    <span className="text-muted-foreground font-normal">
+                      {" "}
+                      · você
+                    </span>
+                  ) : null}
+                </p>
+                <p className="text-muted-foreground truncate text-sm">
+                  {membro.email}
+                </p>
+              </div>
+
+              {podeEditar ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="-mt-1 shrink-0"
+                      disabled={processando}
+                    >
+                      <MoreVertical aria-hidden="true" />
+                      <span className="sr-only">Ações para {membro.nome}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => setEditando(true)}>
+                      <Pencil aria-hidden="true" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={reenviar} disabled={ehVoce}>
+                      <MailPlus aria-hidden="true" />
+                      Reenviar convite
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={alternar} disabled={ehVoce}>
+                      {membro.ativo ? (
+                        <>
+                          <UserX aria-hidden="true" />
+                          Desativar acesso
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck aria-hidden="true" />
+                          Reativar acesso
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
             </div>
 
-            {podeEditar ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="-mt-1 shrink-0"
-                    disabled={processando}
-                  >
-                    <MoreVertical aria-hidden="true" />
-                    <span className="sr-only">Ações para {membro.nome}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DialogoMembro
-                    membro={membro}
-                    gatilho={
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <Pencil aria-hidden="true" />
-                        Editar
-                      </DropdownMenuItem>
-                    }
-                  />
-                  <DropdownMenuItem onSelect={reenviar} disabled={ehVoce}>
-                    <MailPlus aria-hidden="true" />
-                    Reenviar convite
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={alternar} disabled={ehVoce}>
-                    {membro.ativo ? (
-                      <>
-                        <UserX aria-hidden="true" />
-                        Desativar acesso
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck aria-hidden="true" />
-                        Reativar acesso
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant={membro.cargo === "CHEFE" ? "default" : "secondary"}>
-              {CARGO_LABEL[membro.cargo]}
-            </Badge>
-            {membro.funcoes.map((funcao) => (
-              <Badge key={funcao} variant="outline">
-                {FUNCAO_LABEL[funcao]}
+            <div className="flex flex-wrap gap-1.5">
+              <Badge
+                variant={membro.cargo === "CHEFE" ? "default" : "secondary"}
+              >
+                {CARGO_LABEL[membro.cargo]}
               </Badge>
-            ))}
-            {membro.ativo ? null : (
-              <Badge variant="outline" className="border-dashed">
-                Desativado
-              </Badge>
-            )}
+              {membro.funcoes.map((funcao) => (
+                <Badge key={funcao} variant="outline">
+                  {FUNCAO_LABEL[funcao]}
+                </Badge>
+              ))}
+              {membro.ativo ? null : (
+                <Badge variant="outline" className="border-dashed">
+                  Desativado
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </>
   );
 }

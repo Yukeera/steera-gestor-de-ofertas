@@ -50,6 +50,7 @@ export function CartaoIdeia({
   podeMexer: boolean;
 }) {
   const [confirmando, setConfirmando] = useState(false);
+  const [editando, setEditando] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [processando, iniciar] = useTransition();
 
@@ -62,7 +63,9 @@ export function CartaoIdeia({
     iniciar(async () => {
       const resultado = await descartarIdeia(ideia.id, motivo);
       if (resultado.ok) {
-        toast.success("Ideia descartada. Ela continua no filtro de descartadas.");
+        toast.success(
+          "Ideia descartada. Ela continua no filtro de descartadas.",
+        );
         setConfirmando(false);
         setMotivo("");
       } else {
@@ -84,17 +87,17 @@ export function CartaoIdeia({
       <Card className="overflow-hidden pt-0">
         {/* aspect-video fixo reserva o espaço antes da imagem carregar,
             evitando o salto de layout (CLS). */}
-        <div className="bg-muted relative aspect-video w-full">
+        <div className="bg-muted relative aspect-video w-full overflow-hidden">
           {ideia.capaUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- URL assinada e efêmera do Storage privado
             <img
               src={ideia.capaUrl}
               alt={`Capa da oferta ${ideia.nome}`}
               loading="lazy"
-              className="size-full object-cover"
+              className="absolute inset-0 size-full object-cover"
             />
           ) : (
-            <div className="text-muted-foreground flex size-full flex-col items-center justify-center gap-1">
+            <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-1">
               <ImageOff className="size-6" aria-hidden="true" />
               <span className="text-xs">Sem capa</span>
             </div>
@@ -136,15 +139,10 @@ export function CartaoIdeia({
                 <DropdownMenuContent align="end">
                   {naPeneira ? (
                     <>
-                      <DialogoIdeia
-                        ideia={ideia}
-                        gatilho={
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Pencil aria-hidden="true" />
-                            Editar
-                          </DropdownMenuItem>
-                        }
-                      />
+                      <DropdownMenuItem onSelect={() => setEditando(true)}>
+                        <Pencil aria-hidden="true" />
+                        Editar
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={(e) => {
                           e.preventDefault();
@@ -203,10 +201,14 @@ export function CartaoIdeia({
         </CardContent>
       </Card>
 
+      <DialogoIdeia ideia={ideia} aberto={editando} aoAlternar={setEditando} />
+
       <AlertDialog open={confirmando} onOpenChange={setConfirmando}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Descartar &ldquo;{ideia.nome}&rdquo;?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Descartar &ldquo;{ideia.nome}&rdquo;?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Ela sai da grade mas continua no banco, no filtro de descartadas.
               Anotar o motivo evita a equipe recadastrar a mesma ideia daqui a
@@ -215,7 +217,10 @@ export function CartaoIdeia({
           </AlertDialogHeader>
 
           <div className="space-y-2">
-            <label htmlFor={`motivo-${ideia.id}`} className="text-sm font-medium">
+            <label
+              htmlFor={`motivo-${ideia.id}`}
+              className="text-sm font-medium"
+            >
               Motivo (opcional)
             </label>
             <Textarea
@@ -228,7 +233,9 @@ export function CartaoIdeia({
           </div>
 
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={processando}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={processando}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction onClick={descartar} disabled={processando}>
               Descartar
             </AlertDialogAction>

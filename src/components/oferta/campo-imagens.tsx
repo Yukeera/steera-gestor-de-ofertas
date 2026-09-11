@@ -101,12 +101,12 @@ export function CampoImagens({
           )}
         >
           {mostrarExistente ? (
-            <li className="bg-muted overflow-hidden rounded-md border">
+            <li className="bg-muted relative aspect-video overflow-hidden rounded-md border">
               {/* eslint-disable-next-line @next/next/no-img-element -- URL assinada e efêmera do Storage; next/image exigiria configurar o host a cada projeto Supabase */}
               <img
                 src={previaExistente}
                 alt=""
-                className="aspect-video w-full object-cover"
+                className="absolute inset-0 size-full object-cover"
               />
             </li>
           ) : null}
@@ -114,13 +114,13 @@ export function CampoImagens({
           {valor.map((imagem, indice) => (
             <li
               key={imagem.previa}
-              className="bg-muted relative overflow-hidden rounded-md border"
+              className="bg-muted relative aspect-video overflow-hidden rounded-md border"
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- blob local da prévia, não passa por otimização */}
               <img
                 src={imagem.previa}
                 alt=""
-                className="aspect-video w-full object-cover"
+                className="absolute inset-0 size-full object-cover"
               />
               <Button
                 type="button"

@@ -36,17 +36,36 @@ export type IdeiaEditavel = {
 export function DialogoIdeia({
   ideia,
   gatilho,
+  aberto: abertoControlado,
+  aoAlternar,
 }: {
   ideia?: IdeiaEditavel;
   gatilho?: React.ReactNode;
+  /**
+   * Modo controlado. Necessário quando o gatilho é um item de menu: um Dialog
+   * renderizado dentro de um DropdownMenu do Radix é desmontado junto com o
+   * menu e nunca chega a aparecer. Nesse caso o card guarda o estado e
+   * renderiza este diálogo como irmão do menu, não como filho.
+   */
+  aberto?: boolean;
+  aoAlternar?: (aberto: boolean) => void;
 }) {
   const editando = Boolean(ideia);
-  const [aberto, setAberto] = useState(false);
+  const controlado = abertoControlado !== undefined;
+
+  const [abertoLocal, setAbertoLocal] = useState(false);
+  const aberto = controlado ? abertoControlado : abertoLocal;
+
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, iniciar] = useTransition();
 
   const [capa, setCapa] = useState<ImagemEscolhida[]>([]);
   const [criativos, setCriativos] = useState<ImagemEscolhida[]>([]);
+
+  function setAberto(novoEstado: boolean) {
+    if (controlado) aoAlternar?.(novoEstado);
+    else setAbertoLocal(novoEstado);
+  }
 
   function aoMudarAbertura(novoEstado: boolean) {
     if (novoEstado) {
@@ -83,14 +102,16 @@ export function DialogoIdeia({
 
   return (
     <Dialog open={aberto} onOpenChange={aoMudarAbertura}>
-      <DialogTrigger asChild>
-        {gatilho ?? (
-          <Button>
-            <Lightbulb aria-hidden="true" />
-            Nova ideia
-          </Button>
-        )}
-      </DialogTrigger>
+      {controlado ? null : (
+        <DialogTrigger asChild>
+          {gatilho ?? (
+            <Button>
+              <Lightbulb aria-hidden="true" />
+              Nova ideia
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>

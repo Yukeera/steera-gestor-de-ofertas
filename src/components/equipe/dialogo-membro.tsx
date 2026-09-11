@@ -46,12 +46,30 @@ type MembroEditavel = {
 export function DialogoMembro({
   membro,
   gatilho,
+  aberto: abertoControlado,
+  aoAlternar,
 }: {
   membro?: MembroEditavel;
   gatilho?: React.ReactNode;
+  /**
+   * Modo controlado. Necessário quando o gatilho é um item de menu: um Dialog
+   * renderizado dentro de um DropdownMenu do Radix é desmontado junto com o
+   * menu e nunca chega a aparecer.
+   */
+  aberto?: boolean;
+  aoAlternar?: (aberto: boolean) => void;
 }) {
   const editando = Boolean(membro);
-  const [aberto, setAberto] = useState(false);
+  const controlado = abertoControlado !== undefined;
+
+  const [abertoLocal, setAbertoLocal] = useState(false);
+  const aberto = controlado ? abertoControlado : abertoLocal;
+
+  function setAberto(novoEstado: boolean) {
+    if (controlado) aoAlternar?.(novoEstado);
+    else setAbertoLocal(novoEstado);
+  }
+
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, iniciarSalvamento] = useTransition();
   const idErro = useId();
@@ -108,14 +126,16 @@ export function DialogoMembro({
 
   return (
     <Dialog open={aberto} onOpenChange={aoMudarAbertura}>
-      <DialogTrigger asChild>
-        {gatilho ?? (
-          <Button>
-            <UserPlus aria-hidden="true" />
-            Convidar membro
-          </Button>
-        )}
-      </DialogTrigger>
+      {controlado ? null : (
+        <DialogTrigger asChild>
+          {gatilho ?? (
+            <Button>
+              <UserPlus aria-hidden="true" />
+              Convidar membro
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

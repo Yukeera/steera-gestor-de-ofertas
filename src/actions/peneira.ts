@@ -46,13 +46,19 @@ function ouNulo(valor: string | undefined): string | null {
  * O id da oferta é o primeiro nível de pasta porque é assim que o arquivo fica
  * rastreável até o dono — e é o que a policy de Storage espera.
  */
+type ResultadoUpload =
+  | { caminho: string; erro?: undefined }
+  | { caminho?: undefined; erro: string };
+
 async function subirImagem(
   supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
   ofertaId: string,
   arquivo: File,
-): Promise<string | null> {
+): Promise<ResultadoUpload> {
   const extensao = extensaoDeImagem(arquivo.type);
-  if (!extensao) return null;
+  if (!extensao) {
+    return { erro: "Formato de imagem não aceito. Use JPG, PNG ou WebP." };
+  }
 
   const caminho = `${ofertaId}/${crypto.randomUUID()}.${extensao}`;
 
@@ -60,7 +66,9 @@ async function subirImagem(
     .from(BUCKET_OFERTAS)
     .upload(caminho, arquivo, { contentType: arquivo.type });
 
-  return error ? null : caminho;
+  // Devolver o erro em vez de engolir: upload que falha calado vira "salvo com
+  // sucesso" na tela e uma oferta sem capa no banco, sem ninguém saber por quê.
+  return error ? { erro: `Falha ao enviar a imagem: ${error.message}` } : { caminho };
 }
 
 function imagensDoFormulario(formData: FormData, campo: string): File[] {
@@ -109,21 +117,24 @@ export async function criarIdeia(formData: FormData): Promise<Resultado> {
 
   const capa = imagensDoFormulario(formData, "capa")[0];
   if (capa) {
-    const caminho = await subirImagem(supabase, oferta.id, capa);
-    if (caminho) {
-      await supabase
-        .from("ofertas")
-        .update({ capa_path: caminho })
-        .eq("id", oferta.id);
+    const envio = await subirImagem(supabase, oferta.id, capa);
+    if (envio.erro) {
+      // A ideia já está salva: avisar sobre a capa é melhor do que apagar tudo.
+      revalidatePath("/peneira");
+      return { ok: false, erro: `${envio.erro} A ideia foi salva sem capa.` };
     }
+    await supabase
+      .from("ofertas")
+      .update({ capa_path: envio.caminho })
+      .eq("id", oferta.id);
   }
 
   const criativos = imagensDoFormulario(formData, "criativos");
   if (criativos.length > 0) {
     const caminhos: string[] = [];
     for (const arquivo of criativos) {
-      const caminho = await subirImagem(supabase, oferta.id, arquivo);
-      if (caminho) caminhos.push(caminho);
+      const envio = await subirImagem(supabase, oferta.id, arquivo);
+      if (envio.caminho) caminhos.push(envio.caminho);
     }
 
     if (caminhos.length > 0) {
@@ -198,12 +209,20 @@ export async function atualizarIdeia(
 
   const capa = imagensDoFormulario(formData, "capa")[0];
   if (capa) {
-    const caminho = await subirImagem(supabase, ofertaId, capa);
-    if (caminho) {
-      await supabase
-        .from("ofertas")
-        .update({ capa_path: caminho })
-        .eq("id", ofertaId);
+    const envio = await subirImagem(supabase, ofertaId, capa);
+    if (envio.erro) {
+      revalidatePath("/peneira");
+      return { ok: false, erro: envio.erro };
+    }
+
+    const { error: erroCapa } = await supabase
+      .from("ofertas")
+      .update({ capa_path: envio.caminho })
+      .eq("id", ofertaId);
+
+    if (erroCapa) {
+      revalidatePath("/peneira");
+      return { ok: false, erro: erroCapa.message };
     }
   }
 
