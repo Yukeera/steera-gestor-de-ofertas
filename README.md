@@ -67,3 +67,4 @@ A UI esconde botões, mas quem decide é o banco. Toda tabela tem RLS, e as
 políticas se apoiam em `e_chefe()` e `e_mestre_ou_chefe()`. Server Actions
 revalidam a permissão antes de escrever. Se uma regra não estiver no Postgres,
 ela não está garantida.
+
