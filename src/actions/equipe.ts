@@ -37,24 +37,58 @@ function urlDeAceite(): string {
 }
 
 /**
- * RF-01.1 — reenvia o convite.
+ * RF-01.1 — reenvia o acesso por e-mail.
  *
  * O token do e-mail vale uma vez só e expira. Sem isto, um link queimado
  * obrigaria o Chefe a ir no painel do Supabase para destravar alguém.
+ *
+ * Dois caminhos, porque `inviteUserByEmail` recusa quem já existe em
+ * `auth.users` — e num reenvio a pessoa quase sempre já existe, seja porque
+ * clicou no primeiro link, seja porque um scanner de e-mail consumiu o token
+ * por ela. Nesse caso o que resolve é um link de recuperação: leva para a
+ * mesma tela de definir senha e funciona com conta já confirmada.
  */
-export async function reenviarConvite(email: string): Promise<Resultado> {
+export async function reenviarConvite(
+  email: string,
+): Promise<Resultado & { tipo?: "convite" | "recuperacao" }> {
   await exigirChefe();
 
   const admin = criarClienteAdmin();
-  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: urlDeAceite(),
-  });
+  const { error: erroConvite } = await admin.auth.admin.inviteUserByEmail(
+    email,
+    { redirectTo: urlDeAceite() },
+  );
 
-  if (error) {
-    return { ok: false, erro: `Não foi possível reenviar: ${error.message}` };
+  if (!erroConvite) return { ok: true, tipo: "convite" };
+
+  const jaExiste = erroConvite.message
+    .toLowerCase()
+    .includes("already been registered");
+
+  if (!jaExiste) {
+    return {
+      ok: false,
+      erro: `Não foi possível reenviar: ${erroConvite.message}`,
+    };
   }
 
-  return { ok: true };
+  const supabase = await criarClienteServidor();
+  const { error: erroRecuperacao } = await supabase.auth.resetPasswordForEmail(
+    email,
+    { redirectTo: urlDeAceite() },
+  );
+
+  if (erroRecuperacao) {
+    const limite = erroRecuperacao.status === 429;
+    return {
+      ok: false,
+      erro: limite
+        ? "O Supabase bloqueou por limite de envios. O SMTP embutido libera poucos e-mails por hora — espere um pouco ou configure um SMTP próprio."
+        : `Não foi possível reenviar: ${erroRecuperacao.message}`,
+    };
+  }
+
+  return { ok: true, tipo: "recuperacao" };
 }
 
 const esquemaMembro = z.object({

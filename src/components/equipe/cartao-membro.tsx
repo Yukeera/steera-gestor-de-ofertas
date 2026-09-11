@@ -49,9 +49,13 @@ export function CartaoMembro({
     iniciar(async () => {
       const resultado = await reenviarConvite(membro.email);
       if (resultado.ok) {
-        toast.success(`Novo convite enviado para ${membro.email}.`);
+        toast.success(
+          resultado.tipo === "recuperacao"
+            ? `${membro.nome} já tinha acesso criado, então foi um link para definir a senha.`
+            : `Novo convite enviado para ${membro.email}.`,
+        );
       } else {
-        toast.error(resultado.erro);
+        toast.error(resultado.erro, { duration: 8000 });
       }
     });
   }
