@@ -24,16 +24,17 @@ export type MembroSessao = {
 export const obterMembroAtual = cache(async (): Promise<MembroSessao | null> => {
   const supabase = await criarClienteServidor();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Identidade verificada localmente (ver proxy.ts). Antes eram duas idas à
+  // rede por página: uma ao servidor de Auth e outra ao banco. Agora é uma.
+  const { data: sessao } = await supabase.auth.getClaims();
+  const userId = sessao?.claims?.sub;
 
-  if (!user) return null;
+  if (!userId) return null;
 
   const { data, error } = await supabase
     .from("membros")
     .select("id, nome, email, cargo, foto_path, ativo, membro_funcoes(funcao)")
-    .eq("id", user.id)
+    .eq("id", userId)
     .single();
 
   if (error || !data) return null;

@@ -71,7 +71,19 @@ export default async function PaginaPeneira({
   if (autorId) consulta = consulta.eq("criada_por", autorId);
   if (nicho) consulta = consulta.eq("nicho", nicho);
 
-  const { data, error } = await consulta;
+  // As opções dos filtros não dependem do resultado da busca, então não há
+  // motivo para esperá-la. Três consultas em paralelo custam o tempo da mais
+  // lenta, não a soma das três.
+  const [
+    { data, error },
+    { data: autores },
+    { data: nichosBrutos },
+  ] = await Promise.all([
+    consulta,
+    supabase.from("membros").select("id, nome").eq("ativo", true).order("nome"),
+    supabase.from("ofertas").select("nicho").not("nicho", "is", null),
+  ]);
+
   const linhas = (data ?? []) as unknown as LinhaOferta[];
 
   // Duas assinaturas em lote, uma por bucket, em vez de uma por card.
@@ -102,13 +114,8 @@ export default async function PaginaPeneira({
       : null,
   }));
 
-  // Opções dos filtros vêm da base inteira, não do resultado já filtrado —
-  // senão filtrar por um autor faria os outros sumirem da lista.
-  const [{ data: autores }, { data: nichosBrutos }] = await Promise.all([
-    supabase.from("membros").select("id, nome").eq("ativo", true).order("nome"),
-    supabase.from("ofertas").select("nicho").not("nicho", "is", null),
-  ]);
-
+  // Opções vêm da base inteira, não do resultado já filtrado — senão filtrar
+  // por um autor faria os outros sumirem da lista.
   const nichos = [
     ...new Set((nichosBrutos ?? []).map((n) => n.nicho as string)),
   ].sort();

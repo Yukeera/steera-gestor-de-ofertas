@@ -56,11 +56,14 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // getUser() valida o token no servidor do Supabase. getSession() apenas lê o
-  // cookie e confiaria num token forjado — por isso não serve aqui.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifica a assinatura do JWT localmente, com a chave pública do
+  // projeto (ES256) — sem ida ao servidor de Auth, que custava ~350ms em TODA
+  // requisição. Continua seguro: getSession() sozinho leria o cookie e
+  // confiaria num token forjado; aqui a assinatura é conferida de verdade.
+  // E o refresh continua acontecendo, porque getClaims chama getSession por
+  // dentro antes de validar.
+  const { data: sessao } = await supabase.auth.getClaims();
+  const user = sessao?.claims?.sub ? { id: sessao.claims.sub } : null;
 
   const caminho = request.nextUrl.pathname;
   const ehPublica = ROTAS_PUBLICAS.some((rota) => caminho.startsWith(rota));

@@ -55,21 +55,23 @@ export default async function PaginaRodada({
 
   const supabase = await criarClienteServidor();
 
-  const { data: rodada } = await supabase
-    .from("rodadas")
-    .select("id, nome, data_inicio, observacoes, status")
-    .eq("id", id)
-    .maybeSingle();
+  // A lista de ofertas não depende dos dados da Rodada: as duas em paralelo.
+  const [{ data: rodada }, { data: ofertasBrutas }] = await Promise.all([
+    supabase
+      .from("rodadas")
+      .select("id, nome, data_inicio, observacoes, status")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("ofertas")
+      .select(
+        "id, nome, status, data_prevista, ordem_na_rodada, capa_path, roteiros(nome), oferta_etapas(concluida, oferta_etapa_responsaveis(membros(id, nome, foto_path)))",
+      )
+      .eq("rodada_id", id)
+      .order("ordem_na_rodada"),
+  ]);
 
   if (!rodada) notFound();
-
-  const { data: ofertasBrutas } = await supabase
-    .from("ofertas")
-    .select(
-      "id, nome, status, data_prevista, ordem_na_rodada, capa_path, roteiros(nome), oferta_etapas(concluida, oferta_etapa_responsaveis(membros(id, nome, foto_path)))",
-    )
-    .eq("rodada_id", id)
-    .order("ordem_na_rodada");
 
   const linhas = (ofertasBrutas ?? []) as unknown as LinhaOferta[];
 
