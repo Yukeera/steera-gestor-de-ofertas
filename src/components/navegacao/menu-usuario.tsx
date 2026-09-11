@@ -20,7 +20,14 @@ import {
 import { CARGO_LABEL, FUNCAO_LABEL } from "@/lib/dominio/tipos";
 import type { MembroSessao } from "@/lib/auth/sessao";
 
-export function MenuUsuario({ membro }: { membro: MembroSessao }) {
+export function MenuUsuario({
+  membro,
+  fotoUrl,
+}: {
+  membro: MembroSessao;
+  /** URL assinada. O perfil guarda caminho, nao URL: bucket e privado. */
+  fotoUrl: string | null;
+}) {
   const { theme, setTheme } = useTheme();
 
   const funcoes = membro.funcoes.map((f) => FUNCAO_LABEL[f]).join(" · ");
@@ -31,7 +38,7 @@ export function MenuUsuario({ membro }: { membro: MembroSessao }) {
         <Button variant="ghost" size="icon" className="rounded-full">
           <AvatarMembro
             nome={membro.nome}
-            fotoUrl={membro.fotoUrl}
+            fotoUrl={fotoUrl}
             tamanho="sm"
           />
           <span className="sr-only">Abrir menu da conta</span>

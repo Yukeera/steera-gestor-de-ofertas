@@ -9,7 +9,8 @@ export type MembroSessao = {
   nome: string;
   email: string;
   cargo: Cargo;
-  fotoUrl: string | null;
+  /** Caminho no bucket `avatares`, nao URL. Assinar com lib/storage. */
+  fotoPath: string | null;
   ativo: boolean;
   funcoes: Funcao[];
 };
@@ -31,7 +32,7 @@ export const obterMembroAtual = cache(async (): Promise<MembroSessao | null> => 
 
   const { data, error } = await supabase
     .from("membros")
-    .select("id, nome, email, cargo, foto_url, ativo, membro_funcoes(funcao)")
+    .select("id, nome, email, cargo, foto_path, ativo, membro_funcoes(funcao)")
     .eq("id", user.id)
     .single();
 
@@ -42,7 +43,7 @@ export const obterMembroAtual = cache(async (): Promise<MembroSessao | null> => 
     nome: data.nome,
     email: data.email,
     cargo: data.cargo as Cargo,
-    fotoUrl: data.foto_url,
+    fotoPath: data.foto_path,
     ativo: data.ativo,
     funcoes: (data.membro_funcoes ?? []).map(
       (f: { funcao: string }) => f.funcao as Funcao,

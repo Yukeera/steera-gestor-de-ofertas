@@ -4,10 +4,12 @@ import {
   NavegacaoMovel,
 } from "@/components/navegacao/barra-lateral";
 import { MenuUsuario } from "@/components/navegacao/menu-usuario";
+import { assinarCaminho, BUCKET_AVATARES } from "@/lib/storage";
 
 export default async function LayoutApp({ children }: LayoutProps<"/">) {
   const membro = await exigirMembro();
   const podeVerRestrito = ehMestreOuChefe(membro);
+  const fotoUrl = await assinarCaminho(BUCKET_AVATARES, membro.fotoPath);
 
   return (
     <div className="flex min-h-dvh">
@@ -26,7 +28,7 @@ export default async function LayoutApp({ children }: LayoutProps<"/">) {
         <header className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10 flex h-14 items-center gap-2 border-b px-4 backdrop-blur">
           <NavegacaoMovel podeVerRestrito={podeVerRestrito} />
           <div className="flex-1" />
-          <MenuUsuario membro={membro} />
+          <MenuUsuario membro={membro} fotoUrl={fotoUrl} />
         </header>
 
         <main id="conteudo" className="flex-1 px-4 py-6 lg:px-6">
