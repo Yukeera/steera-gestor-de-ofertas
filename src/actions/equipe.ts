@@ -21,14 +21,19 @@ export type Resultado = { ok: true } | { ok: false; erro: string };
 /**
  * Para onde o link do convite leva depois de validado.
  *
- * Precisa estar na lista de Redirect URLs do painel do Supabase, senão o
- * serviço ignora e joga a pessoa na Site URL. Ver docs/SETUP.md.
+ * Aponta para `/auth/entrada`, que é página e não rota de servidor, porque o
+ * template padrão de e-mail do Supabase devolve a sessão no fragmento da URL
+ * — e fragmento só existe no navegador. Editar o template para mandar o token
+ * na query exigiria SMTP próprio, que o painel cobra para liberar a edição.
+ *
+ * Precisa estar na lista de Redirect URLs do painel, senão o Supabase ignora
+ * e joga a pessoa na Site URL. Ver docs/SETUP.md.
  */
 function urlDeAceite(): string {
   const base =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
-  return `${base}/auth/confirm?next=/definir-senha`;
+  return `${base}/auth/entrada?next=/definir-senha`;
 }
 
 /**

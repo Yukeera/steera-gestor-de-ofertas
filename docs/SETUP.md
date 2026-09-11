@@ -83,29 +83,36 @@ Sem isso, o convite chega mas o link não funciona.
 **5.1 — URLs permitidas.** Em **Authentication → URL Configuration**:
 
 - **Site URL:** `http://localhost:3000` (em produção, a URL real)
-- **Redirect URLs:** adicione `http://localhost:3000/auth/confirm`
+- **Redirect URLs:** adicione as duas linhas abaixo
+
+```
+http://localhost:3000/auth/entrada
+http://localhost:3000/auth/confirm
+```
 
 Endereço fora dessa lista é ignorado pelo Supabase, que joga a pessoa na Site URL.
 
-**5.2 — Template do convite.** Em **Authentication → Emails → Invite user**,
-troque o link do corpo do e-mail por:
+**5.2 — Template: não precisa mexer.** O app funciona com o template padrão.
 
-```html
-<a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/definir-senha">Aceitar convite</a>
-```
+> **Por que isso importa.** O painel do Supabase só libera a edição de templates
+> com SMTP próprio configurado. O template padrão devolve a sessão no *fragmento*
+> da URL (`#access_token=…`), e o navegador nunca manda fragmento para o
+> servidor. Por isso o link do convite aponta para `/auth/entrada`, que é página
+> e roda no navegador, onde o fragmento existe.
+>
+> Se um dia você configurar SMTP próprio e quiser o formato mais moderno, troque
+> o link do template por
+> `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/definir-senha`.
+> A rota de servidor `/auth/confirm` já existe e assume esse formato sozinha.
 
-> **Por que trocar.** O template padrão usa `{{ .ConfirmationURL }}`, que devolve
-> o token no *fragmento* da URL (`#access_token=…`). O navegador nunca envia
-> fragmento para o servidor, então a rota `/auth/confirm` não teria como lê-lo.
-> `{{ .TokenHash }}` manda o token na query, onde o servidor alcança.
+**5.3 — SMTP: obrigatório antes de convidar a equipe.** O SMTP embutido do
+Supabase é só para teste: limita a poucos e-mails por hora e **só entrega para
+endereços que são membros do projeto no Supabase**. Convite para um e-mail de
+fora simplesmente não sai.
 
-Faça o mesmo em **Reset password**, trocando `type=invite` por `type=recovery` e
-`next=/definir-senha`.
-
-**5.3 — SMTP.** O SMTP embutido do Supabase é só para teste: limita a poucos
-e-mails por hora e **só entrega para endereços do time do projeto**. Para
-convidar a equipe de verdade, configure um SMTP próprio em
-**Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES).
+Para testar com o seu próprio e-mail, o embutido serve. Para convidar a equipe,
+configure um SMTP próprio em **Authentication → Emails → SMTP Settings**
+(Resend tem plano gratuito de 3.000 e-mails/mês e resolve em uns 10 minutos).
 
 ## 6. Criar os buckets de arquivo
 
@@ -137,8 +144,7 @@ npm run dev
 - [ ] Projeto Supabase criado na região de São Paulo
 - [ ] `.env.local` com as chaves publishable e secret
 - [ ] `npm run db:push` rodado e `npm run db:status` com local = remote
-- [ ] Site URL e Redirect URL (`/auth/confirm`) configuradas
-- [ ] Template de convite usando `{{ .TokenHash }}`
-- [ ] SMTP próprio configurado (o embutido só entrega para o time do projeto)
+- [ ] Site URL e Redirect URLs (`/auth/entrada` e `/auth/confirm`) configuradas
+- [ ] SMTP próprio configurado — só antes de convidar a equipe; para testar com o seu e-mail, o embutido serve
 - [ ] Buckets `avatares` e `ofertas` visíveis em Storage
 - [ ] Primeiro usuário criado e promovido com `bootstrap.sql`
