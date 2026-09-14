@@ -242,9 +242,24 @@ Recomendações vindas da base de charts da skill:
 | Visualização | Tipo | Regras |
 |---|---|---|
 | Ofertas concluídas ao longo do tempo | **Line Chart** (Recharts) | precisa de ≥4 pontos; abaixo disso, usar stat card. Séries distintas por cor **e** por traço (sólido/tracejado) |
-| Funil do período (cadastradas → escaladas → concluídas → validadas) | **Funnel Chart** | 4 estágios, dentro do ótimo de 3–8. Mostrar o % de conversão entre estágios e destacar a maior queda. Risco de acessibilidade condicional: nomes e valores sempre visíveis, estágios separados por borda e texto, nunca só por gradiente |
+| Funil do período (cadastradas → escaladas → concluídas → validadas) | **Barras horizontais em HTML** | Quatro números ordenados não precisam de SVG, e a versão em HTML já é lida por leitor de tela sem trabalho extra. Mostrar o % de conversão entre estágios e destacar a maior queda em texto, não só em cor |
 | KPIs | **Stat cards** | número em Fira Code tabular, rótulo acima, variação com ícone de seta + texto (não só cor verde/vermelha) |
 | Galeria de Validadas | **Grid de cards** | `aspect-ratio` fixo para evitar CLS, `loading="lazy"`, `alt` = nome da oferta |
+
+**Rampa do funil — categoria ordenada, não categórica.** Os quatro estágios são
+marcos do *mesmo* caminho, não identidades independentes: quatro cores diferentes
+sugeririam o contrário. A regra é um hue só, escurecendo (ou clareando, no tema
+escuro). Os passos abaixo passaram nas quatro checagens de rampa ordinal
+(monotonia de luminosidade, distância mínima entre degraus, hue único e contraste
+do extremo claro contra a superfície):
+
+| Tema | Rampa |
+|---|---|
+| Claro | `#60A5FA` → `#3B82F6` → `#1D4ED8` → `#172554` |
+| Escuro | `#1D4ED8` → `#3B82F6` → `#60A5FA` → `#93C5FD` |
+
+> O escuro **não** é o claro invertido: a rampa clara reprova no contraste contra
+> `#0E1223`. Cada tema tem os seus passos, validados separadamente.
 
 Válido para todo gráfico:
 

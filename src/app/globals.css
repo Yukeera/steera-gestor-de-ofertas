@@ -29,6 +29,16 @@
 
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
+
+  /* Rampa ordinal do funil do Painel. Categoria ORDENADA pede um hue só,
+     clareando ou escurecendo — não quatro cores diferentes, que sugeririam
+     identidades independentes em vez de estágios de um mesmo caminho.
+     Os passos foram validados nos dois temas (monotonia, distância entre
+     degraus e contraste do extremo claro contra a superfície). */
+  --color-funil-1: var(--funil-1);
+  --color-funil-2: var(--funil-2);
+  --color-funil-3: var(--funil-3);
+  --color-funil-4: var(--funil-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
@@ -117,6 +127,11 @@
   --chart-4: #4338ca;
   --chart-5: #64748b;
 
+  --funil-1: #60a5fa;
+  --funil-2: #3b82f6;
+  --funil-3: #1d4ed8;
+  --funil-4: #172554;
+
   --radius: 0.5rem;
 
   --sidebar: #ffffff;
@@ -170,6 +185,13 @@
   --chart-3: #4ade80;
   --chart-4: #a5b4fc;
   --chart-5: #94a3b8;
+
+  /* Passos próprios, não o inverso do claro: a rampa clara reprova no
+     contraste contra a superfície escura. */
+  --funil-1: #1d4ed8;
+  --funil-2: #3b82f6;
+  --funil-3: #60a5fa;
+  --funil-4: #93c5fd;
 
   --sidebar: #0e1223;
   --sidebar-foreground: #f8fafc;
