@@ -15,7 +15,10 @@ import {
   type MembroLeve,
 } from "@/components/oferta/checklist-montagem";
 import { HeroiOfertaDoDia } from "@/components/oferta/hero-oferta-do-dia";
-import { MinhasTarefas, type ItemDeTrabalho } from "@/components/tarefa/minhas-tarefas";
+import {
+  MinhasTarefas,
+  type ItemDeTrabalho,
+} from "@/components/tarefa/minhas-tarefas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { OfertaStatus } from "@/lib/dominio/tipos";
@@ -145,6 +148,13 @@ export default async function PaginaHoje() {
    * aberto no meu nome, com uma data. Separá-las em dois blocos obrigaria a
    * pessoa a cruzar as duas listas de cabeça para saber o que fazer primeiro.
    */
+  /**
+   * A fila pessoal exclui a oferta de hoje.
+   *
+   * As etapas dela já estão no Roteiro de Montagem, logo acima, com caixa de
+   * conclusão. Repeti-las aqui criava duas caixas para a mesma etapa e a
+   * dúvida sobre qual marcar. Cada informação num lugar só.
+   */
   const itens: ItemDeTrabalho[] = [
     ...(
       (minhasEtapas ?? []) as unknown as {
@@ -154,19 +164,21 @@ export default async function PaginaHoje() {
           ofertas: { id: string; nome: string; data_prevista: string | null };
         };
       }[]
-    ).map(({ oferta_etapas: e }) => ({
-      chave: `etapa-${e.id}`,
-      id: e.id,
-      titulo: e.titulo,
-      origem: "etapa" as const,
-      contexto: { id: e.ofertas.id, nome: e.ofertas.nome },
-      data: e.ofertas.data_prevista,
-      alta: false,
-      atrasado: Boolean(
-        e.ofertas.data_prevista && e.ofertas.data_prevista < hoje,
-      ),
-      hoje: e.ofertas.data_prevista === hoje,
-    })),
+    )
+      .filter(({ oferta_etapas: e }) => e.ofertas.id !== oferta?.id)
+      .map(({ oferta_etapas: e }) => ({
+        chave: `etapa-${e.id}`,
+        id: e.id,
+        titulo: e.titulo,
+        origem: "etapa" as const,
+        contexto: { id: e.ofertas.id, nome: e.ofertas.nome },
+        data: e.ofertas.data_prevista,
+        alta: false,
+        atrasado: Boolean(
+          e.ofertas.data_prevista && e.ofertas.data_prevista < hoje,
+        ),
+        hoje: e.ofertas.data_prevista === hoje,
+      })),
     ...(
       (minhasTarefas ?? []) as unknown as {
         id: string;
@@ -260,12 +272,17 @@ export default async function PaginaHoje() {
       </section>
 
       <section aria-labelledby="titulo-minhas-tarefas" className="space-y-3">
-        <h2
-          id="titulo-minhas-tarefas"
-          className="text-muted-foreground text-xs font-medium tracking-wide uppercase"
-        >
-          Minhas tarefas
-        </h2>
+        <div className="space-y-0.5">
+          <h2
+            id="titulo-minhas-tarefas"
+            className="text-muted-foreground text-xs font-medium tracking-wide uppercase"
+          >
+            Sua fila
+          </h2>
+          <p className="text-muted-foreground text-xs">
+            O que é seu fora da montagem de hoje.
+          </p>
+        </div>
 
         <MinhasTarefas itens={itens} />
       </section>
