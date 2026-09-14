@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { CalendarDays, ExternalLink, ImageOff, ListChecks, PackageOpen } from "lucide-react";
+import {
+  CalendarDays,
+  ExternalLink,
+  ImageOff,
+  ListChecks,
+  PackageOpen,
+} from "lucide-react";
 
 import { ehMestreOuChefe, exigirMembro } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
@@ -51,29 +57,40 @@ export default async function PaginaHoje() {
   const supabase = await criarClienteServidor();
   const hoje = hojeISO();
 
-  const [{ data: doDia }, { data: equipeBruta }, { data: minhasEtapas }] =
-    await Promise.all([
-      supabase
-        .from("ofertas")
-        .select(SELECAO_OFERTA)
-        .eq("data_prevista", hoje)
-        .in("status", ["NA_ESTEIRA", "CONCLUIDA"])
-        .maybeSingle(),
-      supabase
-        .from("membros")
-        .select("id, nome, foto_path")
-        .eq("ativo", true)
-        .order("nome"),
-      // RF-06.7: tudo que está aberto no nome da pessoa, em qualquer oferta.
-      supabase
-        .from("oferta_etapa_responsaveis")
-        .select(
-          "oferta_etapas!inner(id, titulo, concluida, ofertas!inner(id, nome, status, data_prevista))",
-        )
-        .eq("membro_id", membro.id)
-        .eq("oferta_etapas.concluida", false)
-        .eq("oferta_etapas.ofertas.status", "NA_ESTEIRA"),
-    ]);
+  const [
+    { data: doDia },
+    { data: equipeBruta },
+    { data: minhasEtapas },
+    { data: minhasTarefas },
+  ] = await Promise.all([
+    supabase
+      .from("ofertas")
+      .select(SELECAO_OFERTA)
+      .eq("data_prevista", hoje)
+      .in("status", ["NA_ESTEIRA", "CONCLUIDA"])
+      .maybeSingle(),
+    supabase
+      .from("membros")
+      .select("id, nome, foto_path")
+      .eq("ativo", true)
+      .order("nome"),
+    // RF-06.7: tudo que está aberto no nome da pessoa, em qualquer oferta.
+    supabase
+      .from("oferta_etapa_responsaveis")
+      .select(
+        "oferta_etapas!inner(id, titulo, concluida, ofertas!inner(id, nome, status, data_prevista))",
+      )
+      .eq("membro_id", membro.id)
+      .eq("oferta_etapas.concluida", false)
+      .eq("oferta_etapas.ofertas.status", "NA_ESTEIRA"),
+    // As tarefas individuais entram na MESMA lista. O RLS já garante que
+    // só chegam as designadas a esta pessoa.
+    supabase
+      .from("tarefas")
+      .select("id, titulo, prazo, prioridade, ofertas(id, nome)")
+      .eq("status", "ABERTA")
+      .order("prazo"),
+  ]);
 
   const oferta = doDia as unknown as LinhaOfertaDoDia | null;
 
@@ -127,21 +144,56 @@ export default async function PaginaHoje() {
         })),
     }));
 
-  const tarefas = (
-    (minhasEtapas ?? []) as unknown as {
-      oferta_etapas: {
+  /**
+   * RF-06.7 — etapas de oferta e tarefas individuais na mesma lista.
+   *
+   * São origens diferentes com o mesmo significado para quem executa: algo
+   * aberto no meu nome, com uma data. Separá-las em dois blocos obrigaria a
+   * pessoa a cruzar as duas listas de cabeça para saber o que fazer primeiro.
+   */
+  type ItemDaLista = {
+    chave: string;
+    titulo: string;
+    origem: "etapa" | "tarefa";
+    contexto: { id: string; nome: string } | null;
+    data: string | null;
+    alta: boolean;
+  };
+
+  const itens: ItemDaLista[] = [
+    ...(
+      (minhasEtapas ?? []) as unknown as {
+        oferta_etapas: {
+          id: string;
+          titulo: string;
+          ofertas: { id: string; nome: string; data_prevista: string | null };
+        };
+      }[]
+    ).map(({ oferta_etapas: e }) => ({
+      chave: `etapa-${e.id}`,
+      titulo: e.titulo,
+      origem: "etapa" as const,
+      contexto: { id: e.ofertas.id, nome: e.ofertas.nome },
+      data: e.ofertas.data_prevista,
+      alta: false,
+    })),
+    ...(
+      (minhasTarefas ?? []) as unknown as {
         id: string;
         titulo: string;
-        ofertas: { id: string; nome: string; data_prevista: string | null };
-      };
-    }[]
-  )
-    .map((r) => r.oferta_etapas)
-    .sort((a, b) =>
-      (a.ofertas.data_prevista ?? "").localeCompare(
-        b.ofertas.data_prevista ?? "",
-      ),
-    );
+        prazo: string;
+        prioridade: string;
+        ofertas: { id: string; nome: string } | null;
+      }[]
+    ).map((t) => ({
+      chave: `tarefa-${t.id}`,
+      titulo: t.titulo,
+      origem: "tarefa" as const,
+      contexto: t.ofertas,
+      data: t.prazo,
+      alta: t.prioridade === "ALTA",
+    })),
+  ].sort((a, b) => (a.data ?? "").localeCompare(b.data ?? ""));
 
   const primeiroNome = membro.nome.split(" ")[0];
   const capaUrl = oferta?.capa_path
@@ -261,29 +313,48 @@ export default async function PaginaHoje() {
           Minhas tarefas
         </h2>
 
-        {tarefas.length === 0 ? (
+        {itens.length === 0 ? (
           <EstadoVazio
             icone={ListChecks}
             titulo="Nada aberto no seu nome"
-            descricao="As etapas de oferta em que você é responsável aparecem aqui, ordenadas por data."
+            descricao="Etapas de oferta e tarefas designadas a você aparecem aqui, juntas e ordenadas por data."
           />
         ) : (
           <ul className="divide-y rounded-lg border">
-            {tarefas.map((etapa) => (
+            {itens.map((item) => (
               <li
-                key={etapa.id}
+                key={item.chave}
                 className="flex flex-wrap items-center gap-3 px-4 py-3"
               >
-                <span className="min-w-0 flex-1 text-sm">{etapa.titulo}</span>
-                <Link
-                  href={`/ofertas/${etapa.ofertas.id}`}
-                  className="text-muted-foreground truncate text-xs underline-offset-4 hover:underline"
-                >
-                  {etapa.ofertas.nome}
-                </Link>
-                {etapa.ofertas.data_prevista ? (
-                  <Badge variant="outline" className="tabular">
-                    {rotuloDePrazo(etapa.ofertas.data_prevista)}
+                <span className="min-w-0 flex-1 text-sm">{item.titulo}</span>
+
+                {/* A origem é dita em palavra, não em cor: quem não distingue
+                    as cores precisa saber se é etapa ou tarefa. */}
+                <Badge variant="outline" className="font-normal">
+                  {item.origem}
+                </Badge>
+
+                {item.contexto ? (
+                  <Link
+                    href={`/ofertas/${item.contexto.id}`}
+                    className="text-muted-foreground max-w-40 truncate text-xs underline-offset-4 hover:underline"
+                  >
+                    {item.contexto.nome}
+                  </Link>
+                ) : null}
+
+                {item.alta ? (
+                  <Badge
+                    variant="outline"
+                    className="border-[color:var(--status-atrasada)] text-[color:var(--status-atrasada)]"
+                  >
+                    Alta
+                  </Badge>
+                ) : null}
+
+                {item.data ? (
+                  <Badge variant="secondary" className="tabular">
+                    {rotuloDePrazo(item.data)}
                   </Badge>
                 ) : null}
               </li>
