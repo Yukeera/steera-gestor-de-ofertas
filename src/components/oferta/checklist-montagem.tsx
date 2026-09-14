@@ -198,6 +198,10 @@ function LinhaEtapa({
   ofertaId,
   equipe,
   podeDelegar,
+  ehMinha,
+  primeira,
+  ultima,
+  trilhoPreenchido,
   aoAtualizarResponsaveis,
   aoAlternar,
 }: {
@@ -205,6 +209,11 @@ function LinhaEtapa({
   ofertaId: string;
   equipe: MembroLeve[];
   podeDelegar: boolean;
+  ehMinha: boolean;
+  primeira: boolean;
+  ultima: boolean;
+  /** O trecho de trilho acima deste nó já foi percorrido. */
+  trilhoPreenchido: boolean;
   aoAtualizarResponsaveis: (responsaveis: MembroLeve[]) => void;
   aoAlternar: (concluida: boolean) => void;
 }) {
@@ -216,37 +225,81 @@ function LinhaEtapa({
 
   return (
     <li
+      id={`etapa-${etapa.ordem}`}
       ref={setNodeRef}
       className={cn(
-        "flex items-start gap-3 rounded-lg border p-3 transition-colors",
-        isOver && "border-marca bg-marca/5 border-dashed",
-        etapa.concluida && "bg-muted/40",
+        "group relative flex gap-3 py-2.5 pr-3 pl-2 transition-colors",
+        isOver && "bg-marca/10 rounded-lg",
+        // A etapa da pessoa recebe um leve realce de fundo: ela precisa
+        // encontrar as suas no meio de oito sem ter que ler todas.
+        ehMinha && !isOver && "bg-muted/40 rounded-lg",
       )}
     >
-      <span className="text-muted-foreground w-4 pt-1.5 font-mono text-xs tabular">
-        {etapa.ordem}
-      </span>
+      {/* ── O trilho da esteira ──────────────────────────────────────────
+          A metáfora do produto, desenhada: uma linha vertical que se
+          preenche de cima para baixo conforme as etapas fecham. O nó é o
+          número da etapa; preenchido quando concluída. */}
+      <div className="relative flex w-7 shrink-0 items-center justify-center">
+        {/* Os segmentos avançam sobre o padding da linha (-top/-bottom) para
+            encostar no nó vizinho. Sem isso o trilho fica com buracos onde o
+            espaçamento da lista começa. */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute -top-2.5 bottom-1/2 w-px",
+            primeira && "hidden",
+            trilhoPreenchido
+              ? "bg-[color:var(--status-validada)]"
+              : "bg-border",
+          )}
+        />
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute top-1/2 -bottom-2.5 w-px",
+            ultima && "hidden",
+            etapa.concluida ? "bg-[color:var(--status-validada)]" : "bg-border",
+          )}
+        />
+
+        {/* O nó tem fundo sólido: é ele que corta o trilho no meio. */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "bg-card relative flex size-6 items-center justify-center rounded-full border font-mono text-[10px] tabular transition-colors",
+            etapa.concluida
+              ? "border-transparent bg-[color:var(--status-validada)] text-white"
+              : "text-muted-foreground",
+          )}
+        >
+          {etapa.concluida ? <Check className="size-3" /> : etapa.ordem}
+        </span>
+      </div>
 
       {/* Caixa de 20px com área clicável de 44px, como manda o design system. */}
-      <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-1">
+      <label className="flex min-h-9 cursor-pointer items-center">
         <Checkbox
           checked={etapa.concluida}
           onCheckedChange={(m) => aoAlternar(m === true)}
-          aria-label={`Concluir a etapa ${etapa.titulo}`}
+          aria-label={`Concluir a etapa ${etapa.ordem}: ${etapa.titulo}`}
         />
-        <span className="sr-only">{etapa.titulo}</span>
       </label>
 
-      <div className="min-w-0 flex-1 pt-1">
+      <div className="min-w-0 flex-1 self-center">
         <p
           className={cn(
             "text-sm leading-snug",
-            // Concluída carrega três sinais: check, risco e opacidade. Nunca
-            // só a cor.
+            // Concluída carrega três sinais: check no nó, risco e opacidade.
+            // Nunca só a cor.
             etapa.concluida && "text-muted-foreground line-through opacity-70",
           )}
         >
           {etapa.titulo}
+          {ehMinha && !etapa.concluida ? (
+            <span className="text-muted-foreground ml-2 rounded-full border px-1.5 py-0.5 text-[10px] align-middle">
+              sua
+            </span>
+          ) : null}
         </p>
         {etapa.descricao ? (
           <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
@@ -255,30 +308,32 @@ function LinhaEtapa({
         ) : null}
       </div>
 
-      {podeDelegar ? (
-        <SeletorResponsaveis
-          etapa={etapa}
-          ofertaId={ofertaId}
-          equipe={equipe}
-          aoAtualizar={aoAtualizarResponsaveis}
-        />
-      ) : (
-        <span className="flex -space-x-2 pt-0.5">
-          {etapa.responsaveis.length === 0 ? (
-            <span className="text-muted-foreground text-xs">Sem responsável</span>
-          ) : (
-            etapa.responsaveis.map((r) => (
-              <AvatarMembro
-                key={r.id}
-                nome={r.nome}
-                fotoUrl={r.fotoUrl}
-                tamanho="sm"
-                className="ring-background ring-2"
-              />
-            ))
-          )}
-        </span>
-      )}
+      <div className="self-center">
+        {podeDelegar ? (
+          <SeletorResponsaveis
+            etapa={etapa}
+            ofertaId={ofertaId}
+            equipe={equipe}
+            aoAtualizar={aoAtualizarResponsaveis}
+          />
+        ) : (
+          <span className="flex -space-x-2">
+            {etapa.responsaveis.length === 0 ? (
+              <span className="text-muted-foreground text-xs">sem dono</span>
+            ) : (
+              etapa.responsaveis.map((r) => (
+                <AvatarMembro
+                  key={r.id}
+                  nome={r.nome}
+                  fotoUrl={r.fotoUrl}
+                  tamanho="sm"
+                  className="ring-background ring-2"
+                />
+              ))
+            )}
+          </span>
+        )}
+      </div>
     </li>
   );
 }
@@ -292,11 +347,14 @@ export function ChecklistMontagem({
   etapasIniciais,
   equipe,
   podeDelegar,
+  membroId,
 }: {
   ofertaId: string;
   etapasIniciais: EtapaDaChecklist[];
   equipe: MembroLeve[];
   podeDelegar: boolean;
+  /** Quem está olhando, para destacar as etapas dela na lista. */
+  membroId: string;
 }) {
   const router = useRouter();
   const [etapas, setEtapas] = useState(etapasIniciais);
@@ -396,30 +454,38 @@ export function ChecklistMontagem({
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            Roteiro de Montagem
-          </h2>
-          <span className="text-muted-foreground font-mono text-sm tabular">
-            {concluidas}/{etapas.length}
-          </span>
-        </div>
+        {/* Um cartão só, com as etapas divididas por dentro. Oito cartões
+            soltos espalhavam a lista e escondiam que ela é uma sequência. */}
+        <div className="bg-card overflow-hidden rounded-xl border">
+          <div className="flex items-center justify-between gap-3 border-b px-4 py-2.5">
+            <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              Roteiro de Montagem
+            </h2>
+            <span className="text-muted-foreground font-mono text-sm tabular">
+              {concluidas}/{etapas.length}
+            </span>
+          </div>
 
-        <ul className="space-y-2">
-          {etapas.map((etapa) => (
-            <LinhaEtapa
-              key={etapa.id}
-              etapa={etapa}
-              ofertaId={ofertaId}
-              equipe={equipe}
-              podeDelegar={podeDelegar}
-              aoAlternar={(concluida) => alternar(etapa, concluida)}
-              aoAtualizarResponsaveis={(responsaveis) =>
-                atualizarEtapa(etapa.id, { responsaveis })
-              }
-            />
-          ))}
-        </ul>
+          <ol className="p-2">
+            {etapas.map((etapa, i) => (
+              <LinhaEtapa
+                key={etapa.id}
+                etapa={etapa}
+                ofertaId={ofertaId}
+                equipe={equipe}
+                podeDelegar={podeDelegar}
+                ehMinha={etapa.responsaveis.some((r) => r.id === membroId)}
+                primeira={i === 0}
+                ultima={i === etapas.length - 1}
+                trilhoPreenchido={Boolean(etapas[i - 1]?.concluida)}
+                aoAlternar={(concluida) => alternar(etapa, concluida)}
+                aoAtualizarResponsaveis={(responsaveis) =>
+                  atualizarEtapa(etapa.id, { responsaveis })
+                }
+              />
+            ))}
+          </ol>
+        </div>
 
         {concluidas === etapas.length && etapas.length > 0 ? (
           <p className="text-[color:var(--status-concluida)] flex items-center gap-2 text-sm font-medium">

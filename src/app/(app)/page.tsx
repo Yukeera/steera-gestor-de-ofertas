@@ -15,10 +15,11 @@ import {
   type MembroLeve,
 } from "@/components/oferta/checklist-montagem";
 import { HeroiOfertaDoDia } from "@/components/oferta/hero-oferta-do-dia";
+import type { ItemDeTrabalho } from "@/components/tarefa/minhas-tarefas";
 import {
-  MinhasTarefas,
-  type ItemDeTrabalho,
-} from "@/components/tarefa/minhas-tarefas";
+  PainelDaFila,
+  type MinhaEtapaDeHoje,
+} from "@/components/tarefa/painel-da-fila";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { OfertaStatus } from "@/lib/dominio/tipos";
@@ -200,13 +201,23 @@ export default async function PaginaHoje() {
     })),
   ].sort((a, b) => (a.data ?? "").localeCompare(b.data ?? ""));
 
+  // As etapas da oferta de hoje que estão no nome de quem está olhando.
+  const minhasEtapasDeHoje: MinhaEtapaDeHoje[] = etapas
+    .filter((e) => e.responsaveis.some((r) => r.id === membro.id))
+    .map((e) => ({
+      id: e.id,
+      ordem: e.ordem,
+      titulo: e.titulo,
+      concluida: e.concluida,
+    }));
+
   const primeiroNome = membro.nome.split(" ")[0];
   const capaUrl = oferta?.capa_path
     ? (capas.get(oferta.capa_path) ?? null)
     : null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header className="space-y-1">
         <p className="text-muted-foreground text-sm">
           {formatarDataPorExtenso(hoje)}
@@ -214,78 +225,73 @@ export default async function PaginaHoje() {
         <h1 className="text-2xl">Oi, {primeiroNome}</h1>
       </header>
 
-      <section aria-labelledby="titulo-oferta-hoje" className="space-y-4">
-        <h2
-          id="titulo-oferta-hoje"
-          className="text-muted-foreground text-xs font-medium tracking-wide uppercase"
-        >
-          Oferta de hoje
-        </h2>
-
-        {oferta ? (
-          <>
-            <HeroiOfertaDoDia
-              oferta={{
-                id: oferta.id,
-                nome: oferta.nome,
-                descricao: oferta.descricao,
-                anuncianteReferencia: oferta.anunciante_referencia,
-                urlReferencia: oferta.url_referencia,
-                capaUrl: capaUrl,
-                status: oferta.status,
-                rodada: oferta.rodadas,
-                totalEtapas: etapas.length,
-                etapasConcluidas: etapas.filter((e) => e.concluida).length,
-              }}
-            />
-
-            <ChecklistMontagem
-              ofertaId={oferta.id}
-              etapasIniciais={etapas}
-              equipe={equipe}
-              podeDelegar={podeDelegar}
-            />
-          </>
-        ) : proxima ? (
-          <EstadoVazio
-            icone={CalendarDays}
-            titulo="Nada na esteira hoje"
-            descricao={`A próxima é "${proxima.nome}", em ${formatarDataPorExtenso(proxima.data_prevista!)}.`}
-            acao={{ href: "/calendario", rotulo: "Ver o calendário" }}
-          />
-        ) : (
-          <EstadoVazio
-            icone={PackageOpen}
-            titulo="A esteira ainda não começou a girar"
-            descricao={
-              podeDelegar
-                ? "Cadastre ideias na Peneira e monte a primeira Rodada para distribuir as ofertas pelos dias úteis."
-                : "Assim que o Mestre da Esteira montar uma Rodada, a oferta do dia aparece aqui."
-            }
-            acao={
-              podeDelegar
-                ? { href: "/rodadas/nova", rotulo: "Montar Rodada" }
-                : undefined
-            }
-          />
-        )}
-      </section>
-
-      <section aria-labelledby="titulo-minhas-tarefas" className="space-y-3">
-        <div className="space-y-0.5">
+      {/* Duas colunas a partir de 1024px: a montagem da equipe à esquerda, o
+          que é da pessoa à direita. Abaixo disso empilha, e a coluna da
+          pessoa vem depois — em tela estreita, o trabalho do dia vem antes
+          do resumo dele. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <section aria-labelledby="titulo-oferta-hoje" className="space-y-4">
           <h2
-            id="titulo-minhas-tarefas"
+            id="titulo-oferta-hoje"
             className="text-muted-foreground text-xs font-medium tracking-wide uppercase"
           >
-            Sua fila
+            Oferta de hoje
           </h2>
-          <p className="text-muted-foreground text-xs">
-            O que é seu fora da montagem de hoje.
-          </p>
-        </div>
 
-        <MinhasTarefas itens={itens} />
-      </section>
+          {oferta ? (
+            <>
+              <HeroiOfertaDoDia
+                oferta={{
+                  id: oferta.id,
+                  nome: oferta.nome,
+                  descricao: oferta.descricao,
+                  anuncianteReferencia: oferta.anunciante_referencia,
+                  urlReferencia: oferta.url_referencia,
+                  capaUrl: capaUrl,
+                  status: oferta.status,
+                  rodada: oferta.rodadas,
+                  totalEtapas: etapas.length,
+                  etapasConcluidas: etapas.filter((e) => e.concluida).length,
+                }}
+              />
+
+              <ChecklistMontagem
+                ofertaId={oferta.id}
+                etapasIniciais={etapas}
+                equipe={equipe}
+                podeDelegar={podeDelegar}
+                membroId={membro.id}
+              />
+            </>
+          ) : proxima ? (
+            <EstadoVazio
+              icone={CalendarDays}
+              titulo="Nada na esteira hoje"
+              descricao={`A próxima é "${proxima.nome}", em ${formatarDataPorExtenso(proxima.data_prevista!)}.`}
+              acao={{ href: "/calendario", rotulo: "Ver o calendário" }}
+            />
+          ) : (
+            <EstadoVazio
+              icone={PackageOpen}
+              titulo="A esteira ainda não começou a girar"
+              descricao={
+                podeDelegar
+                  ? "Cadastre ideias na Peneira e monte a primeira Rodada para distribuir as ofertas pelos dias úteis."
+                  : "Assim que o Mestre da Esteira montar uma Rodada, a oferta do dia aparece aqui."
+              }
+              acao={
+                podeDelegar
+                  ? { href: "/rodadas/nova", rotulo: "Montar Rodada" }
+                  : undefined
+              }
+            />
+          )}
+        </section>
+
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <PainelDaFila minhasEtapas={minhasEtapasDeHoje} itens={itens} />
+        </aside>
+      </div>
     </div>
   );
 }

@@ -274,6 +274,7 @@ export default async function PaginaOferta({
                 etapasIniciais={etapas}
                 equipe={equipe}
                 podeDelegar={podeGerir && oferta.status === "NA_ESTEIRA"}
+                membroId={membro.id}
               />
             )}
           </section>
