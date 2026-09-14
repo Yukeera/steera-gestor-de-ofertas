@@ -4,12 +4,35 @@ import {
   NavegacaoMovel,
 } from "@/components/navegacao/barra-lateral";
 import { MenuUsuario } from "@/components/navegacao/menu-usuario";
+import { Sino, type Notificacao } from "@/components/navegacao/sino";
+import { criarClienteServidor } from "@/lib/supabase/server";
 import { assinarCaminho, BUCKET_AVATARES } from "@/lib/storage";
 
 export default async function LayoutApp({ children }: LayoutProps<"/">) {
   const membro = await exigirMembro();
   const podeVerRestrito = ehMestreOuChefe(membro);
-  const fotoUrl = await assinarCaminho(BUCKET_AVATARES, membro.fotoPath);
+  const supabase = await criarClienteServidor();
+
+  // As 20 mais recentes: o sino é um aviso do que chegou, não um arquivo.
+  // O RLS já limita às da pessoa.
+  const [fotoUrl, { data: notificacoesBrutas }] = await Promise.all([
+    assinarCaminho(BUCKET_AVATARES, membro.fotoPath),
+    supabase
+      .from("notificacoes")
+      .select("id, tipo, titulo, contexto, href, lida, criada_em")
+      .order("criada_em", { ascending: false })
+      .limit(20),
+  ]);
+
+  const notificacoes: Notificacao[] = (notificacoesBrutas ?? []).map((n) => ({
+    id: n.id,
+    tipo: n.tipo as Notificacao["tipo"],
+    titulo: n.titulo,
+    contexto: n.contexto,
+    href: n.href,
+    lida: n.lida,
+    criadaEm: n.criada_em,
+  }));
 
   return (
     <div className="flex min-h-dvh">
@@ -28,6 +51,7 @@ export default async function LayoutApp({ children }: LayoutProps<"/">) {
         <header className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10 flex h-14 items-center gap-2 border-b px-4 backdrop-blur">
           <NavegacaoMovel podeVerRestrito={podeVerRestrito} />
           <div className="flex-1" />
+          <Sino notificacoes={notificacoes} />
           <MenuUsuario membro={membro} fotoUrl={fotoUrl} />
         </header>
 

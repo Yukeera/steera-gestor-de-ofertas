@@ -34,7 +34,7 @@ export const ITENS_NAVEGACAO: ItemNavegacao[] = [
   { href: "/painel", rotulo: "Painel", icone: BarChart3 },
   { href: "/equipe", rotulo: "Equipe", icone: Users },
   {
-    href: "/configuracoes/roteiros",
+    href: "/configuracoes",
     rotulo: "Configurações",
     icone: Settings,
     restrito: true,

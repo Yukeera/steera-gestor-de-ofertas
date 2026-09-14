@@ -61,16 +61,13 @@ export default async function PaginaRoteiros() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl">Roteiros de Montagem</h1>
-          <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
-            O passo a passo que cada oferta percorre. Ao entrar numa Rodada, a
-            oferta leva uma <strong>cópia</strong> do roteiro — então mexer aqui
-            não altera nada que já está na esteira.
-          </p>
-        </div>
+        <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+          O passo a passo que cada oferta percorre. Ao entrar numa Rodada, a
+          oferta leva uma <strong>cópia</strong> do roteiro — então mexer aqui
+          não altera nada que já está na esteira.
+        </p>
 
         <DialogoRoteiro />
       </header>
