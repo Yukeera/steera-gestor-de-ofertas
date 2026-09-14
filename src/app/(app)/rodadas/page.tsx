@@ -85,7 +85,7 @@ export default async function PaginaRodadas() {
         </Card>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
-          {rodadas.map((rodada) => {
+          {rodadas.map((rodada, indice) => {
             const total = rodada.ofertas.length;
             const fechadas = rodada.ofertas.filter(
               (o) => o.status !== "NA_ESTEIRA" && o.status !== "NA_PENEIRA",
@@ -99,7 +99,10 @@ export default async function PaginaRodadas() {
 
             return (
               <li key={rodada.id}>
-                <Card>
+                <Card
+                  className="cartao-vivo entra"
+                  style={{ "--i": indice } as React.CSSProperties}
+                >
                   <CardContent className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 space-y-1">

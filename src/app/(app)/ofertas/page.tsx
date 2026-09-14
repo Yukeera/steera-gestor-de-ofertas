@@ -145,7 +145,7 @@ export default async function PaginaOfertas({
         </Card>
       ) : (
         <ul className="space-y-2">
-          {linhas.map((oferta) => {
+          {linhas.map((oferta, indice) => {
             const total = oferta.oferta_etapas.length;
             const concluidas = oferta.oferta_etapas.filter(
               (e) => e.concluida,
@@ -158,7 +158,10 @@ export default async function PaginaOfertas({
 
             return (
               <li key={oferta.id}>
-                <Card>
+                <Card
+                  className="cartao-vivo entra"
+                  style={{ "--i": indice } as React.CSSProperties}
+                >
                   <CardContent className="flex flex-wrap items-center gap-4">
                     <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded">
                       {oferta.capa_path && capas.get(oferta.capa_path) ? (

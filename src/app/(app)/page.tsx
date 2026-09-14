@@ -24,6 +24,7 @@ import { SeloStatus } from "@/components/oferta/selo-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import type { OfertaStatus } from "@/lib/dominio/tipos";
 
 type LinhaOfertaDoDia = {
@@ -219,8 +220,10 @@ export default async function PaginaHoje() {
 
         {oferta ? (
           <>
-            <Card className="overflow-hidden pt-0 sm:flex-row sm:gap-0 sm:py-0">
-              <div className="bg-muted relative aspect-video w-full shrink-0 overflow-hidden sm:aspect-square sm:w-44">
+            {/* A oferta do dia é a manchete da tela: capa maior, nome em
+                destaque e o progresso visível sem rolar. */}
+            <Card className="entra overflow-hidden pt-0 sm:flex-row sm:gap-0 sm:py-0">
+              <div className="bg-muted relative aspect-video w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-56">
                 {capaUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- URL assinada e efêmera do Storage privado
                   <img
@@ -236,15 +239,37 @@ export default async function PaginaHoje() {
                 )}
               </div>
 
-              <CardContent className="flex-1 space-y-2 py-6">
+              <CardContent className="flex-1 space-y-3 py-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg">{oferta.nome}</h3>
+                  <h3 className="font-heading text-xl font-semibold tracking-tight">
+                    {oferta.nome}
+                  </h3>
                   <SeloStatus status={oferta.status} />
                 </div>
 
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   {oferta.descricao}
                 </p>
+
+                {etapas.length > 0 ? (
+                  <div className="max-w-sm space-y-1.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-muted-foreground text-xs">
+                        Montagem
+                      </span>
+                      <span className="font-mono text-sm font-medium tabular">
+                        {etapas.filter((e) => e.concluida).length}/{etapas.length}
+                      </span>
+                    </div>
+                    <Progress
+                      value={
+                        (etapas.filter((e) => e.concluida).length /
+                          etapas.length) *
+                        100
+                      }
+                    />
+                  </div>
+                ) : null}
 
                 <div className="text-muted-foreground flex flex-wrap items-center gap-3 pt-1 text-xs">
                   {oferta.rodadas ? (
@@ -321,10 +346,11 @@ export default async function PaginaHoje() {
           />
         ) : (
           <ul className="divide-y rounded-lg border">
-            {itens.map((item) => (
+            {itens.map((item, indice) => (
               <li
                 key={item.chave}
-                className="flex flex-wrap items-center gap-3 px-4 py-3"
+                className="entra flex flex-wrap items-center gap-3 px-4 py-3"
+                style={{ "--i": indice } as React.CSSProperties}
               >
                 <span className="min-w-0 flex-1 text-sm">{item.titulo}</span>
 

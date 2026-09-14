@@ -34,17 +34,38 @@ export type MembroDaGrade = {
   fotoUrl: string | null;
 };
 
+/**
+ * Cor da faixa por função principal.
+ *
+ * É identidade visual, nunca o único sinal: o nome da função aparece escrito
+ * logo abaixo, em chip. Quem não distingue as cores lê a mesma informação.
+ */
+const FAIXA_POR_FUNCAO: Record<Funcao, string> = {
+  MESTRE_ESTEIRA: "var(--marca)",
+  GESTOR_TRAFEGO: "var(--status-esteira)",
+  GARIMPEIRO: "var(--status-concluida)",
+  ENGENHEIRO_FLUXOS: "var(--status-validada)",
+};
+
 export function CartaoMembro({
   membro,
   podeEditar,
   ehVoce,
+  indice = 0,
 }: {
   membro: MembroDaGrade;
   podeEditar: boolean;
   ehVoce: boolean;
+  indice?: number;
 }) {
   const [processando, iniciar] = useTransition();
   const [editando, setEditando] = useState(false);
+
+  // A primeira função define a faixa. Acumular funções é comum, mas a faixa
+  // precisa de uma cor só para continuar sendo um sinal, e não um arco-íris.
+  const faixa = membro.funcoes[0]
+    ? FAIXA_POR_FUNCAO[membro.funcoes[0]]
+    : "var(--muted-foreground)";
 
   function reenviar() {
     iniciar(async () => {
@@ -84,88 +105,108 @@ export function CartaoMembro({
         aoAlternar={setEditando}
       />
 
-      <Card className={cn(membro.ativo || "opacity-60")}>
-        <CardContent className="flex gap-4 pt-6">
+      <Card
+        className={cn(
+          // `h-full` + coluna flexível: cards da mesma linha terminam na mesma
+          // altura mesmo quando um tem três funções e outro tem uma.
+          "cartao-vivo entra relative flex h-full flex-col overflow-hidden pt-0 text-center",
+          !membro.ativo && "opacity-60",
+        )}
+        style={{ "--i": indice } as React.CSSProperties}
+      >
+        {/* Faixa de identidade. O gradiente desce até o fundo do card, então a
+            cor some antes de chegar no texto e não rouba contraste dele. */}
+        <div
+          aria-hidden="true"
+          className="h-20 w-full shrink-0"
+          style={{
+            background: `linear-gradient(to bottom, color-mix(in oklab, ${faixa} 28%, transparent), transparent)`,
+          }}
+        />
+
+        {podeEditar ? (
+          <div className="absolute top-2 right-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  disabled={processando}
+                >
+                  <MoreVertical aria-hidden="true" />
+                  <span className="sr-only">Ações para {membro.nome}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setEditando(true)}>
+                  <Pencil aria-hidden="true" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={reenviar} disabled={ehVoce}>
+                  <MailPlus aria-hidden="true" />
+                  Reenviar acesso
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={alternar} disabled={ehVoce}>
+                  {membro.ativo ? (
+                    <>
+                      <UserX aria-hidden="true" />
+                      Desativar acesso
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck aria-hidden="true" />
+                      Reativar acesso
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : null}
+
+        <CardContent className="-mt-12 flex flex-1 flex-col gap-3">
+          {/* O anel na cor da função amarra a foto à faixa e faz o retrato ser
+              a primeira coisa que o olho encontra. */}
           <AvatarMembro
             nome={membro.nome}
             fotoUrl={membro.fotoUrl}
-            tamanho="lg"
+            tamanho="xl"
+            className="ring-card mx-auto shadow-sm ring-4"
+            style={{ outline: `2px solid ${faixa}`, outlineOffset: 2 }}
           />
 
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate font-medium">
-                  {membro.nome}
-                  {ehVoce ? (
-                    <span className="text-muted-foreground font-normal">
-                      {" "}
-                      · você
-                    </span>
-                  ) : null}
-                </p>
-                <p className="text-muted-foreground truncate text-sm">
-                  {membro.email}
-                </p>
-              </div>
-
-              {podeEditar ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="-mt-1 shrink-0"
-                      disabled={processando}
-                    >
-                      <MoreVertical aria-hidden="true" />
-                      <span className="sr-only">Ações para {membro.nome}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setEditando(true)}>
-                      <Pencil aria-hidden="true" />
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={reenviar} disabled={ehVoce}>
-                      <MailPlus aria-hidden="true" />
-                      Reenviar convite
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={alternar} disabled={ehVoce}>
-                      {membro.ativo ? (
-                        <>
-                          <UserX aria-hidden="true" />
-                          Desativar acesso
-                        </>
-                      ) : (
-                        <>
-                          <UserCheck aria-hidden="true" />
-                          Reativar acesso
-                        </>
-                      )}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+          <div className="space-y-0.5">
+            <p className="text-[15px] leading-tight font-semibold">
+              {membro.nome}
+              {ehVoce ? (
+                <span className="text-muted-foreground text-sm font-normal">
+                  {" "}
+                  · você
+                </span>
               ) : null}
-            </div>
+            </p>
+            <p className="text-muted-foreground truncate text-xs">
+              {membro.email}
+            </p>
+          </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              <Badge
-                variant={membro.cargo === "CHEFE" ? "default" : "secondary"}
-              >
-                {CARGO_LABEL[membro.cargo]}
+          {/* `mt-auto` empurra os chips para o rodapé: eles ficam alinhados
+              entre cards vizinhos em vez de flutuarem a alturas diferentes. */}
+          <div className="mt-auto flex flex-wrap justify-center gap-1.5">
+            <Badge variant={membro.cargo === "CHEFE" ? "default" : "secondary"}>
+              {CARGO_LABEL[membro.cargo]}
+            </Badge>
+            {membro.funcoes.map((funcao) => (
+              <Badge key={funcao} variant="outline">
+                {FUNCAO_LABEL[funcao]}
               </Badge>
-              {membro.funcoes.map((funcao) => (
-                <Badge key={funcao} variant="outline">
-                  {FUNCAO_LABEL[funcao]}
-                </Badge>
-              ))}
-              {membro.ativo ? null : (
-                <Badge variant="outline" className="border-dashed">
-                  Desativado
-                </Badge>
-              )}
-            </div>
+            ))}
+            {membro.ativo ? null : (
+              <Badge variant="outline" className="border-dashed">
+                Desativado
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>

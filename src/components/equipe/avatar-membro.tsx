@@ -26,14 +26,16 @@ export function AvatarMembro({
   fotoUrl,
   tamanho = "md",
   className,
+  style,
 }: {
   nome: string;
   fotoUrl?: string | null;
   tamanho?: TamanhoAvatar;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <Avatar className={cn(TAMANHOS[tamanho], className)}>
+    <Avatar className={cn(TAMANHOS[tamanho], className)} style={style}>
       {/* O alt fica vazio de propósito: quem consome já rotula o conjunto,
           e um alt aqui faria o leitor de tela repetir o nome duas vezes. */}
       <AvatarImage src={fotoUrl ?? undefined} alt="" />

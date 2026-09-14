@@ -131,7 +131,7 @@ export default async function PaginaRodada({
       </header>
 
       <ol className="space-y-3">
-        {linhas.map((oferta) => {
+        {linhas.map((oferta, indice) => {
           const total = oferta.oferta_etapas.length;
           const concluidas = oferta.oferta_etapas.filter(
             (e) => e.concluida,
@@ -161,7 +161,10 @@ export default async function PaginaRodada({
 
           return (
             <li key={oferta.id}>
-              <Card>
+              <Card
+                className="cartao-vivo entra"
+                style={{ "--i": indice } as React.CSSProperties}
+              >
                 <CardContent className="flex flex-wrap items-center gap-4">
                   <span className="text-muted-foreground w-5 shrink-0 font-mono text-sm tabular">
                     {oferta.ordem_na_rodada}

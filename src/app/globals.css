@@ -239,6 +239,13 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+
+      /* Zerar a duração sem zerar o atraso deixaria o conteúdo invisível
+         durante o delay — a entrada escalonada usa `backwards`. Quem pediu
+         menos movimento receberia meio segundo de tela em branco, que é pior
+         do que a animação que ele quis evitar. */
+      animation-delay: 0ms !important;
+      transition-delay: 0ms !important;
     }
   }
 }
@@ -248,5 +255,62 @@
      Obrigatorio em KPI, progresso (5/8), datas e colunas numericas. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Movimento ───────────────────────────────────────────────────────────
+     Duracoes e curvas vindas da base de motion: hover em 200-300ms com
+     reversao, entrada de lista escalonada em 0,03s por item.
+
+     Sem overshoot (`back.out`) de proposito: em UI informativa e densa, o
+     quique le como desleixo, nao como polimento.
+
+     O bloco de `prefers-reduced-motion` la em cima ja zera tudo isto — por
+     isso nenhuma informacao depende do movimento para aparecer.
+     ────────────────────────────────────────────────────────────────────── */
+
+  @keyframes entrada-suave {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Entrada escalonada. O indice vem em `--i`, definido pelo componente. */
+  .entra {
+    animation: entrada-suave 300ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 30ms);
+  }
+
+  /* Teto de 400ms no total: com 20 cards, 30ms cada passaria de meio segundo
+     e a lista pareceria lenta em vez de fluida. */
+  .entra:nth-child(n + 14) {
+    animation-delay: 390ms;
+  }
+
+  /* Card que responde ao ponteiro. O `translate` sobe 2px: o suficiente para
+     ler como resposta, pouco o bastante para nao deslocar o texto vizinho. */
+  .cartao-vivo {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* `hover-vs-tap`: o mesmo realce vale para foco de teclado, senao quem
+     navega por Tab nao recebe retorno nenhum. */
+  @media (hover: hover) {
+    .cartao-vivo:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.25);
+    }
+  }
+
+  .cartao-vivo:focus-within {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.25);
   }
 }

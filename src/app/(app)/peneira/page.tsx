@@ -163,12 +163,13 @@ export default async function PaginaPeneira({
         </Card>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {ideias.map((ideia) => (
+          {ideias.map((ideia, indice) => (
             <li key={ideia.id}>
               {/* RF-02.4: o autor mexe na própria ideia; Chefe e Mestre, em qualquer uma. */}
               <CartaoIdeia
                 ideia={ideia}
                 podeMexer={ideia.souAutor || ehMestreOuChefe(membro)}
+                indice={indice}
               />
             </li>
           ))}

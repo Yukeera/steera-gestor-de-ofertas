@@ -77,13 +77,14 @@ export default async function PaginaEquipe() {
         </p>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {membros.map((membro) => (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {membros.map((membro, indice) => (
           <CartaoMembro
             key={membro.id}
             membro={membro}
             podeEditar={souChefe}
             ehVoce={membro.id === eu.id}
+            indice={indice}
           />
         ))}
       </div>

@@ -45,9 +45,11 @@ export type IdeiaDaGrade = IdeiaEditavel & {
 export function CartaoIdeia({
   ideia,
   podeMexer,
+  indice = 0,
 }: {
   ideia: IdeiaDaGrade;
   podeMexer: boolean;
+  indice?: number;
 }) {
   const [confirmando, setConfirmando] = useState(false);
   const [editando, setEditando] = useState(false);
@@ -84,17 +86,20 @@ export function CartaoIdeia({
 
   return (
     <>
-      <Card className="overflow-hidden pt-0">
+      <Card
+        className="cartao-vivo entra flex h-full flex-col overflow-hidden pt-0"
+        style={{ "--i": indice } as React.CSSProperties}
+      >
         {/* aspect-video fixo reserva o espaço antes da imagem carregar,
             evitando o salto de layout (CLS). */}
-        <div className="bg-muted relative aspect-video w-full overflow-hidden">
+        <div className="group bg-muted relative aspect-video w-full overflow-hidden">
           {ideia.capaUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- URL assinada e efêmera do Storage privado
             <img
               src={ideia.capaUrl}
               alt={`Capa da oferta ${ideia.nome}`}
               loading="lazy"
-              className="absolute inset-0 size-full object-cover"
+              className="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-1">
@@ -108,7 +113,7 @@ export function CartaoIdeia({
           </div>
         </div>
 
-        <CardContent className="space-y-3">
+        <CardContent className="flex flex-1 flex-col gap-3">
           <div className="flex items-start justify-between gap-2">
             <h3 className="leading-tight font-medium">
               {escalada ? (
@@ -182,7 +187,7 @@ export function CartaoIdeia({
             </p>
           ) : null}
 
-          <div className="text-muted-foreground flex items-center gap-2 pt-1 text-xs">
+          <div className="text-muted-foreground mt-auto flex items-center gap-2 pt-1 text-xs">
             {ideia.autor ? (
               <AvatarMembro
                 nome={ideia.autor.nome}
