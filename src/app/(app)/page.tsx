@@ -1,11 +1,5 @@
 import Link from "next/link";
-import {
-  CalendarDays,
-  ExternalLink,
-  ImageOff,
-  ListChecks,
-  PackageOpen,
-} from "lucide-react";
+import { CalendarDays, PackageOpen } from "lucide-react";
 
 import { ehMestreOuChefe, exigirMembro } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
@@ -14,17 +8,16 @@ import {
   BUCKET_AVATARES,
   BUCKET_OFERTAS,
 } from "@/lib/storage";
-import { formatarDataPorExtenso, hojeISO, rotuloDePrazo } from "@/lib/data";
+import { formatarDataPorExtenso, hojeISO } from "@/lib/data";
 import {
   ChecklistMontagem,
   type EtapaDaChecklist,
   type MembroLeve,
 } from "@/components/oferta/checklist-montagem";
-import { SeloStatus } from "@/components/oferta/selo-status";
-import { Badge } from "@/components/ui/badge";
+import { HeroiOfertaDoDia } from "@/components/oferta/hero-oferta-do-dia";
+import { MinhasTarefas, type ItemDeTrabalho } from "@/components/tarefa/minhas-tarefas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import type { OfertaStatus } from "@/lib/dominio/tipos";
 
 type LinhaOfertaDoDia = {
@@ -152,16 +145,7 @@ export default async function PaginaHoje() {
    * aberto no meu nome, com uma data. Separá-las em dois blocos obrigaria a
    * pessoa a cruzar as duas listas de cabeça para saber o que fazer primeiro.
    */
-  type ItemDaLista = {
-    chave: string;
-    titulo: string;
-    origem: "etapa" | "tarefa";
-    contexto: { id: string; nome: string } | null;
-    data: string | null;
-    alta: boolean;
-  };
-
-  const itens: ItemDaLista[] = [
+  const itens: ItemDeTrabalho[] = [
     ...(
       (minhasEtapas ?? []) as unknown as {
         oferta_etapas: {
@@ -172,11 +156,16 @@ export default async function PaginaHoje() {
       }[]
     ).map(({ oferta_etapas: e }) => ({
       chave: `etapa-${e.id}`,
+      id: e.id,
       titulo: e.titulo,
       origem: "etapa" as const,
       contexto: { id: e.ofertas.id, nome: e.ofertas.nome },
       data: e.ofertas.data_prevista,
       alta: false,
+      atrasado: Boolean(
+        e.ofertas.data_prevista && e.ofertas.data_prevista < hoje,
+      ),
+      hoje: e.ofertas.data_prevista === hoje,
     })),
     ...(
       (minhasTarefas ?? []) as unknown as {
@@ -188,11 +177,14 @@ export default async function PaginaHoje() {
       }[]
     ).map((t) => ({
       chave: `tarefa-${t.id}`,
+      id: t.id,
       titulo: t.titulo,
       origem: "tarefa" as const,
       contexto: t.ofertas,
       data: t.prazo,
       alta: t.prioridade === "ALTA",
+      atrasado: t.prazo < hoje,
+      hoje: t.prazo === hoje,
     })),
   ].sort((a, b) => (a.data ?? "").localeCompare(b.data ?? ""));
 
@@ -220,83 +212,20 @@ export default async function PaginaHoje() {
 
         {oferta ? (
           <>
-            {/* A oferta do dia é a manchete da tela: capa maior, nome em
-                destaque e o progresso visível sem rolar. */}
-            <Card className="entra overflow-hidden pt-0 sm:flex-row sm:gap-0 sm:py-0">
-              <div className="bg-muted relative aspect-video w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-56">
-                {capaUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- URL assinada e efêmera do Storage privado
-                  <img
-                    src={capaUrl}
-                    alt={`Capa da oferta ${oferta.nome}`}
-                    className="absolute inset-0 size-full object-cover"
-                  />
-                ) : (
-                  <ImageOff
-                    className="text-muted-foreground absolute inset-0 m-auto size-6"
-                    aria-hidden="true"
-                  />
-                )}
-              </div>
-
-              <CardContent className="flex-1 space-y-3 py-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-heading text-xl font-semibold tracking-tight">
-                    {oferta.nome}
-                  </h3>
-                  <SeloStatus status={oferta.status} />
-                </div>
-
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {oferta.descricao}
-                </p>
-
-                {etapas.length > 0 ? (
-                  <div className="max-w-sm space-y-1.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-muted-foreground text-xs">
-                        Montagem
-                      </span>
-                      <span className="font-mono text-sm font-medium tabular">
-                        {etapas.filter((e) => e.concluida).length}/{etapas.length}
-                      </span>
-                    </div>
-                    <Progress
-                      value={
-                        (etapas.filter((e) => e.concluida).length /
-                          etapas.length) *
-                        100
-                      }
-                    />
-                  </div>
-                ) : null}
-
-                <div className="text-muted-foreground flex flex-wrap items-center gap-3 pt-1 text-xs">
-                  {oferta.rodadas ? (
-                    <Link
-                      href={`/rodadas/${oferta.rodadas.id}`}
-                      className="underline-offset-4 hover:underline"
-                    >
-                      {oferta.rodadas.nome}
-                    </Link>
-                  ) : null}
-                  {oferta.anunciante_referencia ? (
-                    <span>Referência: {oferta.anunciante_referencia}</span>
-                  ) : null}
-                  {oferta.url_referencia ? (
-                    <a
-                      href={oferta.url_referencia}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
-                    >
-                      Ver anúncio
-                      <ExternalLink className="size-3" aria-hidden="true" />
-                    </a>
-                  ) : null}
-                </div>
-              </CardContent>
-            </Card>
+            <HeroiOfertaDoDia
+              oferta={{
+                id: oferta.id,
+                nome: oferta.nome,
+                descricao: oferta.descricao,
+                anuncianteReferencia: oferta.anunciante_referencia,
+                urlReferencia: oferta.url_referencia,
+                capaUrl: capaUrl,
+                status: oferta.status,
+                rodada: oferta.rodadas,
+                totalEtapas: etapas.length,
+                etapasConcluidas: etapas.filter((e) => e.concluida).length,
+              }}
+            />
 
             <ChecklistMontagem
               ofertaId={oferta.id}
@@ -338,55 +267,7 @@ export default async function PaginaHoje() {
           Minhas tarefas
         </h2>
 
-        {itens.length === 0 ? (
-          <EstadoVazio
-            icone={ListChecks}
-            titulo="Nada aberto no seu nome"
-            descricao="Etapas de oferta e tarefas designadas a você aparecem aqui, juntas e ordenadas por data."
-          />
-        ) : (
-          <ul className="divide-y rounded-lg border">
-            {itens.map((item, indice) => (
-              <li
-                key={item.chave}
-                className="entra flex flex-wrap items-center gap-3 px-4 py-3"
-                style={{ "--i": indice } as React.CSSProperties}
-              >
-                <span className="min-w-0 flex-1 text-sm">{item.titulo}</span>
-
-                {/* A origem é dita em palavra, não em cor: quem não distingue
-                    as cores precisa saber se é etapa ou tarefa. */}
-                <Badge variant="outline" className="font-normal">
-                  {item.origem}
-                </Badge>
-
-                {item.contexto ? (
-                  <Link
-                    href={`/ofertas/${item.contexto.id}`}
-                    className="text-muted-foreground max-w-40 truncate text-xs underline-offset-4 hover:underline"
-                  >
-                    {item.contexto.nome}
-                  </Link>
-                ) : null}
-
-                {item.alta ? (
-                  <Badge
-                    variant="outline"
-                    className="border-[color:var(--status-atrasada)] text-[color:var(--status-atrasada)]"
-                  >
-                    Alta
-                  </Badge>
-                ) : null}
-
-                {item.data ? (
-                  <Badge variant="secondary" className="tabular">
-                    {rotuloDePrazo(item.data)}
-                  </Badge>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
+        <MinhasTarefas itens={itens} />
       </section>
     </div>
   );
