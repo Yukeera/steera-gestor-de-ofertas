@@ -41,6 +41,18 @@ valor. Nada de animação decorativa.
 
 ---
 
+### 1.1 Marca
+
+O símbolo é uma correia transportadora — dois roletes e a fita tangenciando os
+dois. A forma sai da mecânica, não de ornamento: é o que amarra a marca ao
+vocabulário do produto (esteira, rolete, montagem).
+
+Construção, arte-fonte e regras de uso (tamanho mínimo, cor, o que não fazer)
+estão em **[docs/marca/README.md](marca/README.md)**. O componente vive em
+`src/components/marca.tsx`.
+
+---
+
 ## 2. Paleta
 
 Base: paleta **Inventory & Stock Management** ("industrial slate") da skill,
