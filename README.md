@@ -16,7 +16,8 @@ Peneira de Ideias  →  Rodada  →  Na Esteira  →  Concluída  →  Validada
 |---|---|
 | [docs/PLANEJAMENTO.md](docs/PLANEJAMENTO.md) | Requisitos, modelo de dados, regras de negócio, roadmap |
 | [docs/DESIGN.md](docs/DESIGN.md) | Design system: paleta, tipografia, padrões de componente, acessibilidade |
-| [docs/SETUP.md](docs/SETUP.md) | Como conectar o Supabase e criar o primeiro Chefe |
+| [docs/SETUP.md](docs/SETUP.md) | Como conectar o Supabase, configurar o e-mail e criar o primeiro Chefe |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Publicar na Vercel e apontar as URLs |
 
 ## Stack
 

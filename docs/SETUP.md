@@ -105,14 +105,62 @@ Endereço fora dessa lista é ignorado pelo Supabase, que joga a pessoa na Site 
 > `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/definir-senha`.
 > A rota de servidor `/auth/confirm` já existe e assume esse formato sozinha.
 
-**5.3 — SMTP: obrigatório antes de convidar a equipe.** O SMTP embutido do
-Supabase é só para teste: limita a poucos e-mails por hora e **só entrega para
-endereços que são membros do projeto no Supabase**. Convite para um e-mail de
-fora simplesmente não sai.
+**5.3 — SMTP próprio: obrigatório antes de convidar a equipe.**
 
-Para testar com o seu próprio e-mail, o embutido serve. Para convidar a equipe,
-configure um SMTP próprio em **Authentication → Emails → SMTP Settings**
-(Resend tem plano gratuito de 3.000 e-mails/mês e resolve em uns 10 minutos).
+O SMTP embutido do Supabase é só para teste: limita a poucos e-mails por hora e
+**só entrega para endereços que são membros do projeto no Supabase**. Convite para
+um e-mail de fora simplesmente não sai.
+
+### Resend, passo a passo
+
+**a) Criar a conta.** Em [resend.com](https://resend.com), plano gratuito —
+3.000 e-mails por mês, mais do que suficiente para convites de equipe.
+
+**b) Verificar o domínio.** Em **Domains → Add Domain**, informe o domínio da
+empresa. O Resend mostra três registros para publicar no seu DNS:
+
+| Tipo | Para que serve |
+|---|---|
+| `TXT` (SPF) | diz quais servidores podem enviar em nome do domínio |
+| `TXT` (DKIM) | assina cada mensagem, provando que não foi forjada |
+| `TXT` (DMARC) | diz ao destinatário o que fazer quando SPF ou DKIM falham |
+
+Publique os três exatamente como o painel mostrar e clique em **Verify**. A
+propagação costuma levar minutos, mas pode chegar a algumas horas.
+
+> **Por que não dá para pular.** Sem esses registros o Resend recusa o envio, e
+> mesmo que aceitasse o Gmail e o Outlook mandariam para spam. Um convite que cai
+> em spam é pior do que um convite que não sai: ninguém fica sabendo.
+
+**c) Gerar a chave.** Em **API Keys → Create API Key**, permissão de envio. Ela
+aparece **uma vez só** — guarde no seu gerenciador de senhas.
+
+**d) Configurar no Supabase.** Em **Authentication → Emails → SMTP Settings**,
+ative *Enable Custom SMTP* e preencha:
+
+| Campo | Valor |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | a API key gerada no passo (c) |
+| Sender email | `acesso@seudominio.com.br` — precisa ser do domínio verificado |
+| Sender name | `Steera` |
+
+**e) Ajustar o limite de envio.** Em **Authentication → Rate Limits**, o Supabase
+mantém **30 e-mails por hora** mesmo com SMTP próprio. É proteção de reputação
+para serviço novo, mas trava o dia em que você convidar a equipe inteira de uma
+vez. Suba conforme o tamanho do time.
+
+**f) Testar.** Volte ao Steera, em **Equipe → Convidar membro**, e convide um
+e-mail que **não** seja membro do projeto Supabase — é esse o caso que o SMTP
+embutido não cobria. Se chegar, está resolvido.
+
+> **Um bônus que isso destrava:** com SMTP próprio, o painel libera a edição dos
+> templates de e-mail. Não é obrigatório mexer — o app funciona com o padrão. Mas
+> se quiser o formato mais moderno, troque o link do template de convite por
+> `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/definir-senha`.
+> A rota `/auth/confirm` já existe e assume esse formato sozinha.
 
 ## 6. Criar os buckets de arquivo
 
@@ -145,6 +193,7 @@ npm run dev
 - [ ] `.env.local` com as chaves publishable e secret
 - [ ] `npm run db:push` rodado e `npm run db:status` com local = remote
 - [ ] Site URL e Redirect URLs (`/auth/entrada` e `/auth/confirm`) configuradas
-- [ ] SMTP próprio configurado — só antes de convidar a equipe; para testar com o seu e-mail, o embutido serve
+- [ ] Domínio verificado no Resend (SPF, DKIM e DMARC publicados)
+- [ ] SMTP próprio no Supabase e limite de envio ajustado em Rate Limits
 - [ ] Buckets `avatares` e `ofertas` visíveis em Storage
 - [ ] Primeiro usuário criado e promovido com `bootstrap.sql`
