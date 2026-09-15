@@ -1,10 +1,29 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MailPlus, MoreVertical, Pencil, UserCheck, UserX } from "lucide-react";
+import {
+  KeyRound,
+  MailPlus,
+  MoreVertical,
+  Pencil,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import { toast } from "sonner";
 
-import { alternarAtivo, reenviarConvite } from "@/actions/equipe";
+import {
+  alternarAtivo,
+  redefinirSenhaDireto,
+  reenviarConvite,
+} from "@/actions/equipe";
+import { SenhaGerada } from "@/components/equipe/senha-gerada";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AvatarMembro } from "@/components/equipe/avatar-membro";
 import { DialogoMembro } from "@/components/equipe/dialogo-membro";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +79,7 @@ export function CartaoMembro({
 }) {
   const [processando, iniciar] = useTransition();
   const [editando, setEditando] = useState(false);
+  const [senhaNova, setSenhaNova] = useState<string | null>(null);
 
   // A primeira função define a faixa. Acumular funções é comum, mas a faixa
   // precisa de uma cor só para continuar sendo um sinal, e não um arco-íris.
@@ -79,6 +99,14 @@ export function CartaoMembro({
       } else {
         toast.error(resultado.erro, { duration: 8000 });
       }
+    });
+  }
+
+  function gerarSenha() {
+    iniciar(async () => {
+      const resultado = await redefinirSenhaDireto(membro.id);
+      if (resultado.ok && resultado.senha) setSenhaNova(resultado.senha);
+      else if (!resultado.ok) toast.error(resultado.erro, { duration: 8000 });
     });
   }
 
@@ -104,6 +132,28 @@ export function CartaoMembro({
         aberto={editando}
         aoAlternar={setEditando}
       />
+
+      <Dialog
+        open={Boolean(senhaNova)}
+        onOpenChange={(v) => !v && setSenhaNova(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Senha nova</DialogTitle>
+            <DialogDescription>
+              A senha anterior deixou de valer.
+            </DialogDescription>
+          </DialogHeader>
+          {senhaNova ? (
+            <SenhaGerada
+              nome={membro.nome}
+              email={membro.email}
+              senha={senhaNova}
+              aoFechar={() => setSenhaNova(null)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Card
         className={cn(
@@ -143,9 +193,13 @@ export function CartaoMembro({
                   <Pencil aria-hidden="true" />
                   Editar
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={gerarSenha} disabled={ehVoce}>
+                  <KeyRound aria-hidden="true" />
+                  Gerar senha nova
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={reenviar} disabled={ehVoce}>
                   <MailPlus aria-hidden="true" />
-                  Reenviar acesso
+                  Reenviar por e-mail
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={alternar} disabled={ehVoce}>
                   {membro.ativo ? (

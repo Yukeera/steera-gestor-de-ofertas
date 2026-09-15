@@ -342,3 +342,117 @@ export async function atualizarFoto(
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+/**
+ * Alfabeto sem caracteres ambíguos.
+ *
+ * A senha vai ser lida em voz alta ou digitada de um print — zero, O, um, l e I
+ * viram erro de digitação e uma ligação para perguntar "é ele ou i?".
+ */
+const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+function gerarSenha(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const bruta = [...bytes].map((b) => ALFABETO[b % ALFABETO.length]).join("");
+  // Em blocos de 4: quem digita de um print não se perde no meio.
+  return bruta.match(/.{1,4}/g)!.join("-");
+}
+
+/**
+ * RF-01.1 — cria o acesso sem passar por e-mail.
+ *
+ * Existe porque o SMTP embutido do Supabase só entrega para membros da
+ * organização, e configurar SMTP próprio é trabalho desproporcional para uma
+ * equipe de poucas pessoas. Aqui o Chefe recebe uma senha provisória e a repassa
+ * pelo canal que a equipe já usa.
+ *
+ * A senha é gerada pelo sistema, não escolhida pelo Chefe: senha escolhida na
+ * pressa é senha fraca, e ele não deveria carregar essa decisão.
+ */
+export async function criarAcessoDireto(
+  formData: FormData,
+): Promise<Resultado & { senha?: string }> {
+  await exigirChefe();
+
+  const analise = lerFormulario(formData);
+  if (!analise.success) {
+    return { ok: false, erro: analise.error.issues[0].message };
+  }
+
+  const { nome, email, cargo, funcoes } = analise.data;
+  const admin = criarClienteAdmin();
+  const senha = gerarSenha();
+
+  const { data: criado, error: erroCriacao } = await admin.auth.admin.createUser(
+    {
+      email,
+      password: senha,
+      // Sem e-mail para confirmar, o acesso já nasce confirmado — senão a
+      // pessoa receberia "confirme seu e-mail" num endereço que nunca recebeu
+      // nada.
+      email_confirm: true,
+    },
+  );
+
+  if (erroCriacao || !criado?.user) {
+    const jaExiste =
+      erroCriacao?.message?.toLowerCase().includes("already been registered") ??
+      false;
+
+    return {
+      ok: false,
+      erro: jaExiste
+        ? "Já existe um acesso com esse e-mail."
+        : `Não foi possível criar o acesso: ${erroCriacao?.message ?? "erro desconhecido"}`,
+    };
+  }
+
+  const idNovo = criado.user.id;
+
+  const { error: erroPerfil } = await admin
+    .from("membros")
+    .insert({ id: idNovo, nome, email, cargo });
+
+  if (erroPerfil) {
+    // Mesmo cuidado do convite: acesso sem perfil deixaria a pessoa num limbo.
+    await admin.auth.admin.deleteUser(idNovo);
+    return {
+      ok: false,
+      erro: `O perfil falhou e o acesso foi desfeito: ${erroPerfil.message}`,
+    };
+  }
+
+  const { error: erroFuncoes } = await admin
+    .from("membro_funcoes")
+    .insert(funcoes.map((funcao) => ({ membro_id: idNovo, funcao })));
+
+  if (erroFuncoes) {
+    return {
+      ok: false,
+      erro: `Acesso criado, mas as funções não foram salvas: ${erroFuncoes.message}. Edite o membro para ajustar.`,
+    };
+  }
+
+  revalidatePath("/equipe");
+  return { ok: true, senha };
+}
+
+/** Gera uma senha nova para quem perdeu a que recebeu. */
+export async function redefinirSenhaDireto(
+  membroId: string,
+): Promise<Resultado & { senha?: string }> {
+  await exigirChefe();
+
+  const admin = criarClienteAdmin();
+  const senha = gerarSenha();
+
+  const { error } = await admin.auth.admin.updateUserById(membroId, {
+    password: senha,
+  });
+
+  if (error) {
+    return { ok: false, erro: `Não foi possível trocar a senha: ${error.message}` };
+  }
+
+  return { ok: true, senha };
+}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { exigirMembro } from "@/lib/auth/sessao";
 import { assinarCaminho, BUCKET_AVATARES } from "@/lib/storage";
@@ -40,6 +41,19 @@ export default async function PaginaPerfil() {
             <div className="space-y-1">
               <p className="text-sm font-medium">E-mail</p>
               <p className="text-muted-foreground text-sm">{eu.email}</p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Senha</p>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Se você entrou com uma senha provisória, troque por uma sua.{" "}
+                <Link
+                  href="/definir-senha"
+                  className="underline underline-offset-4"
+                >
+                  Trocar senha
+                </Link>
+              </p>
             </div>
 
             <div className="space-y-2">
