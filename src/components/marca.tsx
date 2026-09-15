@@ -1,39 +1,35 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Marca do Steera: uma esteira de três roletes com a peça em cima.
- * SVG inline para herdar `currentColor` e acompanhar o tema.
+ * Marca do Steera: o "S" desenhado como uma correia transportadora.
+ *
+ * A geometria é uma correia de verdade — dois roletes e a fita tangenciando
+ * ambos —, por isso o traço é um caminho contínuo e não dois arcos colados:
+ * emenda entre subpaths deixava uma costura de um pixel na cintura do S.
+ *
+ * A caixa é 70×100 (a arte encosta nas quatro bordas), então quem usa
+ * dimensiona pela altura e deixa a largura em `auto`.
  */
 export function LogoSteera({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="0 0 70 100"
       fill="none"
+      stroke="currentColor"
+      strokeLinejoin="round"
       aria-hidden="true"
-      className={cn("size-7", className)}
+      className={cn("h-6 w-auto", className)}
     >
-      {/* a peça na esteira */}
-      <rect
-        x="10"
-        y="6"
-        width="12"
-        height="8"
-        rx="1.5"
-        fill="currentColor"
-        opacity="0.9"
-      />
-      {/* o trilho */}
+      {/* a correia: rabo tangente, volta do rolete de cima, cruzamento,
+          volta do rolete de baixo, rabo tangente (simetria de 180°) */}
       <path
-        d="M3 20h26"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        opacity="0.45"
+        d="M65.8 33.8 43.63 12.37A22.1 22.1 0 1 0 35.56 48.77L34.44 51.23A22.1 22.1 0 1 1 26.37 87.63L4.2 66.2"
+        strokeWidth="11.8"
       />
-      {/* os roletes */}
-      <circle cx="8" cy="25" r="3.5" stroke="currentColor" strokeWidth="2" />
-      <circle cx="16" cy="25" r="3.5" stroke="currentColor" strokeWidth="2" />
-      <circle cx="24" cy="25" r="3.5" stroke="currentColor" strokeWidth="2" />
+      {/* os roletes. O furo é um pouco maior que o do desenho original para
+          não fechar nos 16–24px da barra lateral e do favicon. */}
+      <circle cx="28" cy="28" r="8.2" strokeWidth="6.4" />
+      <circle cx="42" cy="72" r="8.2" strokeWidth="6.4" />
     </svg>
   );
 }
