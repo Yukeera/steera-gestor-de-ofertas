@@ -34,11 +34,15 @@ Em **Settings → Environment Variables**, para **Production** e **Preview**:
 | `NEXT_PUBLIC_SUPABASE_URL` | a mesma do `.env.local` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | a mesma do `.env.local` |
 | `SUPABASE_SECRET_KEY` | a mesma do `.env.local` |
-| `NEXT_PUBLIC_SITE_URL` | `https://seu-projeto.vercel.app` — **sem barra no fim** |
+| `NEXT_PUBLIC_SITE_URL` | **opcional** — veja abaixo |
 
-**`NEXT_PUBLIC_SITE_URL` é o que mais quebra.** É ela que monta o link dos
-convites. Apontando para `localhost`, o convite chega com um link que só funciona
-na sua máquina — e a pessoa convidada não tem como saber disso.
+**Sobre a `NEXT_PUBLIC_SITE_URL`.** É ela que monta o link dos convites por
+e-mail. Se você não declarar, o app usa o domínio que a própria Vercel injeta
+(`VERCEL_PROJECT_PRODUCTION_URL` em produção, `VERCEL_URL` nas previews) — então
+o caso comum funciona sem você configurar nada.
+
+Declare explicitamente **quando apontar um domínio próprio**: aí o valor da
+Vercel continua sendo o `.vercel.app`, e o convite sairia com o domínio errado.
 
 > A `SUPABASE_SECRET_KEY` fica marcada como sensível pela Vercel e não aparece
 > mais depois de salva. Ela ignora todo o RLS; se algum dia vazar, gere outra em
@@ -90,9 +94,10 @@ Nesta ordem, porque cada item depende do anterior:
 Em **Settings → Domains** na Vercel, adicione `steera.seudominio.com.br` e
 publique o `CNAME` que ela indicar.
 
-Fazendo isso, **volte ao passo 3 e ao 4**: `NEXT_PUBLIC_SITE_URL` e as Redirect
-URLs precisam apontar para o domínio novo. Esquecer disso é o jeito mais comum de
-o convite parar de funcionar depois de tudo estar no ar.
+Fazendo isso, **volte ao passo 3 e ao 4**: agora sim declare
+`NEXT_PUBLIC_SITE_URL` com o domínio novo — sem ela o app continuaria usando o
+`.vercel.app` que a Vercel injeta — e acrescente o domínio nas Redirect URLs do
+Supabase.
 
 ---
 
@@ -114,8 +119,8 @@ senão a versão publicada procura uma coluna que ainda não existe.
 
 - [ ] `git push` com a `main` em dia
 - [ ] Projeto importado na Vercel, sem mexer em build settings
-- [ ] Quatro variáveis em Production e Preview
-- [ ] `NEXT_PUBLIC_SITE_URL` com o domínio real e sem barra no fim
+- [ ] As três variáveis do Supabase em Production e Preview
+- [ ] `NEXT_PUBLIC_SITE_URL` só se usar domínio próprio
 - [ ] Site URL e Redirect URLs do Supabase com a URL da Vercel
 - [ ] Login testado na URL publicada
 - [ ] Convite testado de ponta a ponta, em janela anônima

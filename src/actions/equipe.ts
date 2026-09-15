@@ -15,6 +15,7 @@ import {
   extensaoDeImagem,
 } from "@/lib/storage";
 import { CARGOS, FUNCOES } from "@/lib/dominio/tipos";
+import { urlDoSite } from "@/lib/site";
 
 export type Resultado = { ok: true } | { ok: false; erro: string };
 
@@ -23,17 +24,13 @@ export type Resultado = { ok: true } | { ok: false; erro: string };
  *
  * Aponta para `/auth/entrada`, que é página e não rota de servidor, porque o
  * template padrão de e-mail do Supabase devolve a sessão no fragmento da URL
- * — e fragmento só existe no navegador. Editar o template para mandar o token
- * na query exigiria SMTP próprio, que o painel cobra para liberar a edição.
+ * — e fragmento só existe no navegador.
  *
  * Precisa estar na lista de Redirect URLs do painel, senão o Supabase ignora
  * e joga a pessoa na Site URL. Ver docs/SETUP.md.
  */
 function urlDeAceite(): string {
-  const base =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
-  return `${base}/auth/entrada?next=/definir-senha`;
+  return `${urlDoSite()}/auth/entrada?next=/definir-senha`;
 }
 
 /**
