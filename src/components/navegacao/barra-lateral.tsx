@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { ExternalLink, Menu } from "lucide-react";
 
 import { MarcaSteera } from "@/components/marca";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,56 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
+import { APPS_EXTERNOS } from "./externos";
 import { ITENS_NAVEGACAO, itemEstaAtivo } from "./itens";
+
+/**
+ * Rodapé com as outras aplicações da operação.
+ *
+ * Fica separado da navegação de propósito: são endereços fora do Steera, e
+ * misturá-los com as telas faria a pessoa clicar esperando continuar aqui.
+ * Por isso `<a>` e não `<Link>` — não há rota interna para pré-carregar — e
+ * por isso o ícone de link externo, que é o sinal visual do que vai acontecer.
+ */
+function AppsDaOperacao({ aoNavegar }: { aoNavegar?: () => void }) {
+  return (
+    <div className="border-sidebar-border mt-auto border-t p-3">
+      <p className="text-muted-foreground px-3 pb-1.5 text-xs font-medium tracking-wide uppercase">
+        Nossa operação
+      </p>
+
+      {APPS_EXTERNOS.map((app) => {
+        const Icone = app.icone;
+
+        return (
+          <a
+            key={app.href}
+            href={app.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={aoNavegar}
+            className={cn(
+              "text-muted-foreground group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+              "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+            )}
+          >
+            <Icone className="size-5 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate">
+              {app.rotulo}
+              {/* O ícone sozinho não chega ao leitor de tela. */}
+              <span className="sr-only"> (abre em nova aba)</span>
+            </span>
+            <ExternalLink
+              className="size-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100"
+              aria-hidden="true"
+            />
+          </a>
+        );
+      })}
+    </div>
+  );
+}
 
 function ListaDeLinks({
   podeVerRestrito,
@@ -78,6 +127,7 @@ export function BarraLateral({ podeVerRestrito }: { podeVerRestrito: boolean }) 
         </Link>
       </div>
       <ListaDeLinks podeVerRestrito={podeVerRestrito} />
+      <AppsDaOperacao />
     </aside>
   );
 }
@@ -107,6 +157,7 @@ export function NavegacaoMovel({
           podeVerRestrito={podeVerRestrito}
           aoNavegar={() => setAberta(false)}
         />
+        <AppsDaOperacao aoNavegar={() => setAberta(false)} />
       </SheetContent>
     </Sheet>
   );
