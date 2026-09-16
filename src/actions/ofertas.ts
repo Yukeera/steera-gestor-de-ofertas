@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { exigirMestreOuChefe } from "@/lib/auth/sessao";
+import { exigirMembro, exigirMestreOuChefe } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { normalizarWhatsapp } from "@/lib/whatsapp";
 
 export type Resultado = { ok: true } | { ok: false; erro: string };
 
@@ -66,6 +67,39 @@ export async function desfazerValidacao(
   if (error) return { ok: false, erro: error.message };
 
   revalidar(ofertaId);
+  return { ok: true };
+}
+
+/**
+ * Define o WhatsApp que leva ao funil, a qualquer altura da vida da oferta.
+ *
+ * Passa por `definir_whatsapp_funil` em vez de um `update` direto porque a
+ * policy de `ofertas` libera a linha inteira só para Chefe e Mestre — e este
+ * campo precisa ser de qualquer membro, já que quem monta o funil é quem sabe
+ * o número. A função no banco toca só esta coluna.
+ */
+export async function definirWhatsappFunil(
+  ofertaId: string,
+  bruto: string,
+): Promise<Resultado> {
+  await exigirMembro();
+
+  // Normaliza aqui e no banco. Aqui para dar mensagem boa; lá porque a action
+  // não é a única porta possível para a coluna.
+  const analise = normalizarWhatsapp(bruto);
+  if (analise.erro) return { ok: false, erro: analise.erro };
+
+  const supabase = await criarClienteServidor();
+
+  const { error } = await supabase.rpc("definir_whatsapp_funil", {
+    p_oferta_id: ofertaId,
+    p_numero: analise.numero,
+  });
+
+  if (error) return { ok: false, erro: error.message };
+
+  revalidar(ofertaId);
+  revalidatePath("/peneira");
   return { ok: true };
 }
 

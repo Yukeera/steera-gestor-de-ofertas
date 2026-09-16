@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formatarWhatsapp } from "@/lib/whatsapp";
 
 export type IdeiaEditavel = {
   id: string;
@@ -32,6 +33,7 @@ export type IdeiaEditavel = {
   urlReferencia: string | null;
   nicho: string | null;
   capaUrl: string | null;
+  whatsappFunil: string | null;
   /** Links dos criativos que inspiraram a ideia. */
   criativos: string[];
 };
@@ -189,6 +191,28 @@ export function DialogoIdeia({
               defaultValue={ideia?.urlReferencia ?? ""}
               placeholder="https://…"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp_funil">WhatsApp do funil</Label>
+            <Input
+              id="whatsapp_funil"
+              name="whatsapp_funil"
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              defaultValue={
+                ideia?.whatsappFunil
+                  ? formatarWhatsapp(ideia.whatsappFunil)
+                  : ""
+              }
+              placeholder="(11) 99999-8888"
+              aria-describedby="ajuda-whatsapp"
+            />
+            <p id="ajuda-whatsapp" className="text-muted-foreground text-xs">
+              O número para onde o anúncio manda. Costuma só existir depois da
+              montagem — dá para preencher na tela da oferta.
+            </p>
           </div>
 
           <CampoImagens

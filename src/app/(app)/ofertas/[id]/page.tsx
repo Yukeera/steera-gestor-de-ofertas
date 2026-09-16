@@ -17,6 +17,7 @@ import {
   type MembroLeve,
 } from "@/components/oferta/checklist-montagem";
 import { BlocoValidacao } from "@/components/oferta/bloco-validacao";
+import { CampoWhatsapp } from "@/components/oferta/campo-whatsapp";
 import {
   HistoricoOferta,
   type EventoDaOferta,
@@ -49,6 +50,7 @@ type LinhaOferta = {
   url_referencia: string | null;
   nicho: string | null;
   capa_path: string | null;
+  whatsapp_funil: string | null;
   status: OfertaStatus;
   criada_em: string;
   data_prevista: string | null;
@@ -87,7 +89,7 @@ export default async function PaginaOferta({
       supabase
         .from("ofertas")
         .select(
-          "id, nome, descricao, anunciante_referencia, url_referencia, nicho, capa_path, status, criada_em, data_prevista, escalada_em, data_conclusao, data_validacao, observacao_validacao, motivo_descarte, rodadas(id, nome), roteiros(nome), membros!ofertas_criada_por_fkey(nome, foto_path), oferta_anexos(id, url), oferta_etapas(id, ordem, titulo, descricao, concluida, oferta_etapa_responsaveis(membros(id, nome, foto_path)))",
+          "id, nome, descricao, anunciante_referencia, url_referencia, nicho, capa_path, whatsapp_funil, status, criada_em, data_prevista, escalada_em, data_conclusao, data_validacao, observacao_validacao, motivo_descarte, rodadas(id, nome), roteiros(nome), membros!ofertas_criada_por_fkey(nome, foto_path), oferta_anexos(id, url), oferta_etapas(id, ordem, titulo, descricao, concluida, oferta_etapa_responsaveis(membros(id, nome, foto_path)))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -290,6 +292,25 @@ export default async function PaginaOferta({
                     </Campo>
                   </>
                 ) : null}
+              </CardContent>
+            </Card>
+          </section>
+
+          <section aria-labelledby="t-funil" className="space-y-3">
+            <h2
+              id="t-funil"
+              className="text-muted-foreground text-xs font-medium tracking-wide uppercase"
+            >
+              Funil
+            </h2>
+            <Card>
+              <CardContent className="text-sm">
+                <Campo rotulo="WhatsApp do funil">
+                  <CampoWhatsapp
+                    ofertaId={oferta.id}
+                    numero={oferta.whatsapp_funil}
+                  />
+                </Campo>
               </CardContent>
             </Card>
           </section>

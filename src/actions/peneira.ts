@@ -6,6 +6,7 @@ import { z } from "zod";
 import { exigirMembro, ehMestreOuChefe } from "@/lib/auth/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { BUCKET_OFERTAS, extensaoDeImagem } from "@/lib/storage";
+import { normalizarWhatsapp } from "@/lib/whatsapp";
 
 export type Resultado = { ok: true; id?: string } | { ok: false; erro: string };
 
@@ -23,6 +24,7 @@ const esquemaIdeia = z.object({
     .optional()
     .or(z.literal("")),
   nicho: z.string().trim().max(80).optional().or(z.literal("")),
+  whatsapp_funil: z.string().trim().max(40).optional().or(z.literal("")),
 });
 
 function lerFormulario(formData: FormData) {
@@ -32,6 +34,7 @@ function lerFormulario(formData: FormData) {
     anunciante_referencia: formData.get("anunciante_referencia") ?? "",
     url_referencia: formData.get("url_referencia") ?? "",
     nicho: formData.get("nicho") ?? "",
+    whatsapp_funil: formData.get("whatsapp_funil") ?? "",
   });
 }
 
@@ -120,6 +123,10 @@ export async function criarIdeia(formData: FormData): Promise<Resultado> {
   }
 
   const dados = analise.data;
+
+  const whatsapp = normalizarWhatsapp(dados.whatsapp_funil ?? "");
+  if (whatsapp.erro) return { ok: false, erro: whatsapp.erro };
+
   const supabase = await criarClienteServidor();
 
   const { data: oferta, error } = await supabase
@@ -130,6 +137,7 @@ export async function criarIdeia(formData: FormData): Promise<Resultado> {
       anunciante_referencia: ouNulo(dados.anunciante_referencia),
       url_referencia: ouNulo(dados.url_referencia),
       nicho: ouNulo(dados.nicho),
+      whatsapp_funil: whatsapp.numero,
       criada_por: membro.id,
     })
     .select("id")
@@ -274,6 +282,9 @@ export async function atualizarIdeia(
 
   const dados = analise.data;
 
+  const whatsapp = normalizarWhatsapp(dados.whatsapp_funil ?? "");
+  if (whatsapp.erro) return { ok: false, erro: whatsapp.erro };
+
   const { error } = await supabase
     .from("ofertas")
     .update({
@@ -282,6 +293,7 @@ export async function atualizarIdeia(
       anunciante_referencia: ouNulo(dados.anunciante_referencia),
       url_referencia: ouNulo(dados.url_referencia),
       nicho: ouNulo(dados.nicho),
+      whatsapp_funil: whatsapp.numero,
     })
     .eq("id", ofertaId);
 
