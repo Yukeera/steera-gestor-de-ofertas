@@ -31,6 +31,16 @@ import type { OfertaStatus } from "@/lib/dominio/tipos";
 
 export const metadata: Metadata = { title: "Oferta" };
 
+/** Endereço inteiro não cabe na coluna lateral; o domínio já identifica. */
+function dominioDe(link: string): string {
+  try {
+    const { hostname, search } = new URL(link);
+    return `${hostname.replace(/^www\./, "")}${search}`;
+  } catch {
+    return link;
+  }
+}
+
 type LinhaOferta = {
   id: string;
   nome: string;
@@ -50,6 +60,7 @@ type LinhaOferta = {
   rodadas: { id: string; nome: string } | null;
   roteiros: { nome: string } | null;
   membros: { nome: string; foto_path: string | null } | null;
+  oferta_anexos: { id: string; url: string | null }[];
   oferta_etapas: {
     id: string;
     ordem: number;
@@ -76,7 +87,7 @@ export default async function PaginaOferta({
       supabase
         .from("ofertas")
         .select(
-          "id, nome, descricao, anunciante_referencia, url_referencia, nicho, capa_path, status, criada_em, data_prevista, escalada_em, data_conclusao, data_validacao, observacao_validacao, motivo_descarte, rodadas(id, nome), roteiros(nome), membros!ofertas_criada_por_fkey(nome, foto_path), oferta_etapas(id, ordem, titulo, descricao, concluida, oferta_etapa_responsaveis(membros(id, nome, foto_path)))",
+          "id, nome, descricao, anunciante_referencia, url_referencia, nicho, capa_path, status, criada_em, data_prevista, escalada_em, data_conclusao, data_validacao, observacao_validacao, motivo_descarte, rodadas(id, nome), roteiros(nome), membros!ofertas_criada_por_fkey(nome, foto_path), oferta_anexos(id, url), oferta_etapas(id, ordem, titulo, descricao, concluida, oferta_etapa_responsaveis(membros(id, nome, foto_path)))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -114,6 +125,11 @@ export default async function PaginaOferta({
     nome: m.nome,
     fotoUrl: url(m.foto_path),
   }));
+
+  // Anexo também pode ser arquivo no Storage, e aí `url` vem nula.
+  const criativos = oferta.oferta_anexos
+    .map((a) => a.url)
+    .filter((url): url is string => url !== null);
 
   const etapas: EtapaDaChecklist[] = [...oferta.oferta_etapas]
     .sort((a, b) => a.ordem - b.ordem)
@@ -239,6 +255,33 @@ export default async function PaginaOferta({
                     "—"
                   )}
                 </Campo>
+                {criativos.length > 0 ? (
+                  <>
+                    <Separator />
+                    <Campo rotulo="Criativos de referência">
+                      <ul className="space-y-1">
+                        {criativos.map((link) => (
+                          <li key={link}>
+                            <a
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex max-w-full items-center gap-1 underline underline-offset-4"
+                            >
+                              <span className="truncate">
+                                {dominioDe(link)}
+                              </span>
+                              <ExternalLink
+                                className="size-3 shrink-0"
+                                aria-hidden="true"
+                              />
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </Campo>
+                  </>
+                ) : null}
                 {oferta.motivo_descarte ? (
                   <>
                     <Separator />

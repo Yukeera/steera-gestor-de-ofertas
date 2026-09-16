@@ -9,7 +9,6 @@ import {
   prepararProporcional,
   TIPOS_DE_IMAGEM,
 } from "@/lib/imagem";
-import { cn } from "@/lib/utils";
 
 export type ImagemEscolhida = {
   arquivo: File;
@@ -26,14 +25,12 @@ export type ImagemEscolhida = {
 export function CampoImagens({
   rotulo,
   ajuda,
-  multiplo = false,
   valor,
   aoMudar,
   previaExistente,
 }: {
   rotulo: string;
   ajuda?: string;
-  multiplo?: boolean;
   valor: ImagemEscolhida[];
   aoMudar: (imagens: ImagemEscolhida[]) => void;
   /** URL já salva no servidor, exibida enquanto nada novo é escolhido. */
@@ -56,7 +53,7 @@ export function CampoImagens({
         }),
       );
 
-      aoMudar(multiplo ? [...valor, ...preparadas] : preparadas.slice(0, 1));
+      aoMudar(preparadas.slice(0, 1));
     } catch {
       toast.error("Não foi possível ler uma das imagens.");
     } finally {
@@ -87,19 +84,14 @@ export function CampoImagens({
           ) : (
             <ImagePlus aria-hidden="true" />
           )}
-          {multiplo ? "Adicionar" : valor.length > 0 ? "Trocar" : "Escolher"}
+          {valor.length > 0 ? "Trocar" : "Escolher"}
         </Button>
       </div>
 
       {ajuda ? <p className="text-muted-foreground text-xs">{ajuda}</p> : null}
 
       {(valor.length > 0 || mostrarExistente) && (
-        <ul
-          className={cn(
-            "grid gap-2",
-            multiplo ? "grid-cols-3" : "grid-cols-1",
-          )}
-        >
+        <ul className="grid grid-cols-1 gap-2">
           {mostrarExistente ? (
             <li className="bg-muted relative aspect-video overflow-hidden rounded-md border">
               {/* eslint-disable-next-line @next/next/no-img-element -- URL assinada e efêmera do Storage; next/image exigiria configurar o host a cada projeto Supabase */}
@@ -141,7 +133,6 @@ export function CampoImagens({
         ref={inputRef}
         type="file"
         accept={TIPOS_DE_IMAGEM}
-        multiple={multiplo}
         className="sr-only"
         aria-label={rotulo}
         onChange={aoEscolher}

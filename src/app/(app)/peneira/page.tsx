@@ -41,6 +41,7 @@ type LinhaOferta = {
   criada_por: string | null;
   motivo_descarte: string | null;
   membros: { nome: string; foto_path: string | null } | null;
+  oferta_anexos: { url: string | null }[];
 };
 
 export default async function PaginaPeneira({
@@ -61,7 +62,7 @@ export default async function PaginaPeneira({
   let consulta = supabase
     .from("ofertas")
     .select(
-      "id, nome, descricao, anunciante_referencia, url_referencia, nicho, capa_path, status, criada_em, criada_por, motivo_descarte, membros!ofertas_criada_por_fkey(nome, foto_path)",
+      "id, nome, descricao, anunciante_referencia, url_referencia, nicho, capa_path, status, criada_em, criada_por, motivo_descarte, membros!ofertas_criada_por_fkey(nome, foto_path), oferta_anexos(url)",
     )
     .order("criada_em", { ascending: false });
 
@@ -101,6 +102,10 @@ export default async function PaginaPeneira({
     urlReferencia: l.url_referencia,
     nicho: l.nicho,
     capaUrl: l.capa_path ? (capas.get(l.capa_path) ?? null) : null,
+    // `oferta_anexos` também guarda arquivo de Storage, cuja `url` é nula.
+    criativos: l.oferta_anexos
+      .map((a) => a.url)
+      .filter((url): url is string => url !== null),
     status: l.status,
     criadaEm: l.criada_em,
     motivoDescarte: l.motivo_descarte,

@@ -9,6 +9,7 @@ import {
   CampoImagens,
   type ImagemEscolhida,
 } from "@/components/oferta/campo-imagens";
+import { CampoLinks } from "@/components/oferta/campo-links";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +32,8 @@ export type IdeiaEditavel = {
   urlReferencia: string | null;
   nicho: string | null;
   capaUrl: string | null;
+  /** Links dos criativos que inspiraram a ideia. */
+  criativos: string[];
 };
 
 export function DialogoIdeia({
@@ -60,7 +63,7 @@ export function DialogoIdeia({
   const [salvando, iniciar] = useTransition();
 
   const [capa, setCapa] = useState<ImagemEscolhida[]>([]);
-  const [criativos, setCriativos] = useState<ImagemEscolhida[]>([]);
+  const [criativos, setCriativos] = useState<string[]>(ideia?.criativos ?? []);
 
   function setAberto(novoEstado: boolean) {
     if (controlado) aoAlternar?.(novoEstado);
@@ -70,7 +73,7 @@ export function DialogoIdeia({
   function aoMudarAbertura(novoEstado: boolean) {
     if (novoEstado) {
       setCapa([]);
-      setCriativos([]);
+      setCriativos(ideia?.criativos ?? []);
       setErro(null);
     }
     setAberto(novoEstado);
@@ -82,7 +85,7 @@ export function DialogoIdeia({
 
     const dados = new FormData(evento.currentTarget);
     if (capa[0]) dados.set("capa", capa[0].arquivo);
-    for (const imagem of criativos) dados.append("criativos", imagem.arquivo);
+    for (const link of criativos) dados.append("criativos", link);
 
     iniciar(async () => {
       const resultado = ideia
@@ -196,15 +199,13 @@ export function DialogoIdeia({
             previaExistente={ideia?.capaUrl}
           />
 
-          {editando ? null : (
-            <CampoImagens
-              rotulo="Criativos de referência"
-              ajuda="Os anúncios que inspiraram a ideia. Pode escolher vários."
-              multiplo
-              valor={criativos}
-              aoMudar={setCriativos}
-            />
-          )}
+          <CampoLinks
+            rotulo="Criativos de referência"
+            ajuda="Os anúncios que inspiraram a ideia, na biblioteca de anúncios. Cole um por vez."
+            marcador="https://facebook.com/ads/library/?id=…"
+            valor={criativos}
+            aoMudar={setCriativos}
+          />
 
           {erro ? (
             <p role="alert" className="text-destructive text-sm">

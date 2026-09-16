@@ -77,6 +77,30 @@ function imagensDoFormulario(formData: FormData, campo: string): File[] {
     .filter((v): v is File => v instanceof File && v.size > 0);
 }
 
+const esquemaLink = z.string().trim().url();
+
+/**
+ * Lê a lista de links do formulário.
+ *
+ * A validação já aconteceu na tela, e acontece de novo aqui: o formulário é só
+ * um cliente entre outros possíveis, e link inválido no banco vira âncora
+ * quebrada na tela da oferta meses depois.
+ *
+ * Duplicata some silenciosamente — a pessoa colar o mesmo anúncio duas vezes
+ * não é erro que mereça travar o salvamento da ideia inteira.
+ */
+function linksDoFormulario(formData: FormData, campo: string): string[] {
+  const vistos = new Set<string>();
+
+  for (const valor of formData.getAll(campo)) {
+    if (typeof valor !== "string") continue;
+    const analise = esquemaLink.safeParse(valor);
+    if (analise.success) vistos.add(analise.data);
+  }
+
+  return [...vistos];
+}
+
 /**
  * RF-02.1 — cadastra uma ideia na Peneira.
  *
@@ -129,28 +153,84 @@ export async function criarIdeia(formData: FormData): Promise<Resultado> {
       .eq("id", oferta.id);
   }
 
-  const criativos = imagensDoFormulario(formData, "criativos");
+  const criativos = linksDoFormulario(formData, "criativos");
   if (criativos.length > 0) {
-    const caminhos: string[] = [];
-    for (const arquivo of criativos) {
-      const envio = await subirImagem(supabase, oferta.id, arquivo);
-      if (envio.caminho) caminhos.push(envio.caminho);
-    }
-
-    if (caminhos.length > 0) {
-      await supabase.from("oferta_anexos").insert(
-        caminhos.map((caminho) => ({
-          oferta_id: oferta.id,
-          tipo: "CRIATIVO" as const,
-          caminho,
-          enviado_por: membro.id,
-        })),
-      );
-    }
+    await supabase.from("oferta_anexos").insert(
+      criativos.map((url) => ({
+        oferta_id: oferta.id,
+        tipo: "CRIATIVO" as const,
+        url,
+        enviado_por: membro.id,
+      })),
+    );
   }
 
   revalidatePath("/peneira");
   return { ok: true, id: oferta.id };
+}
+
+/**
+ * Deixa a lista de links do banco igual à da tela.
+ *
+ * Diferença em vez de "apaga tudo e reinsere": link que não mudou mantém quem
+ * o cadastrou e quando, que é o que dá para reconstruir de onde a ideia veio.
+ *
+ * O `select()` depois do delete não é enfeite. A policy deixa o autor remover
+ * só o que ele mesmo cadastrou; se o Chefe tiver acrescentado um link, o
+ * delete do autor volta sem linha e **sem erro** — silêncio que viraria "salvo
+ * com sucesso" com o link ainda lá na tela seguinte.
+ */
+async function sincronizarCriativos(
+  supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
+  ofertaId: string,
+  membroId: string,
+  desejados: string[],
+): Promise<string | null> {
+  const { data: atuais } = await supabase
+    .from("oferta_anexos")
+    .select("id, url")
+    .eq("oferta_id", ofertaId)
+    .not("url", "is", null);
+
+  const existentes = (atuais ?? []) as { id: string; url: string }[];
+  const manter = new Set(desejados);
+
+  const remover = existentes.filter((a) => !manter.has(a.url));
+  const acrescentar = desejados.filter(
+    (url) => !existentes.some((a) => a.url === url),
+  );
+
+  if (remover.length > 0) {
+    const { data: removidos, error } = await supabase
+      .from("oferta_anexos")
+      .delete()
+      .in(
+        "id",
+        remover.map((a) => a.id),
+      )
+      .select("id");
+
+    if (error) return error.message;
+
+    if ((removidos ?? []).length < remover.length) {
+      return "Alguns criativos não puderam ser removidos: eles foram cadastrados por outra pessoa. Peça ao Chefe ou ao Mestre da Esteira.";
+    }
+  }
+
+  if (acrescentar.length > 0) {
+    const { error } = await supabase.from("oferta_anexos").insert(
+      acrescentar.map((url) => ({
+        oferta_id: ofertaId,
+        tipo: "CRIATIVO" as const,
+        url,
+        enviado_por: membroId,
+      })),
+    );
+
+    if (error) return error.message;
+  }
+
+  return null;
 }
 
 /**
@@ -226,7 +306,18 @@ export async function atualizarIdeia(
     }
   }
 
+  const erroCriativos = await sincronizarCriativos(
+    supabase,
+    ofertaId,
+    membro.id,
+    linksDoFormulario(formData, "criativos"),
+  );
+
   revalidatePath("/peneira");
+  revalidatePath(`/ofertas/${ofertaId}`);
+
+  if (erroCriativos) return { ok: false, erro: erroCriativos };
+
   return { ok: true };
 }
 
